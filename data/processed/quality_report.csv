@@ -1,0 +1,61 @@
+record_id,field,issue_type,description,severity,suggested_fix
+1927-Babe Ruth,stat_category,misclassification,"Value 137.0 unusual for Home Runs, changed to Hits",medium,Changed from Home Runs to Hits
+1927-Earle Combs,stat_category,misclassification,"Value 231.0 unusual for Home Runs, changed to Hits",medium,Changed from Home Runs to Hits
+1927-On Base Percentage,stat_value,out_of_range,Value 0.486 outside expected range for Batting Average,high,
+1927-Lou Gehrig,stat_category,misclassification,"Value 175.0 unusual for Home Runs, changed to Hits",medium,Changed from Home Runs to Hits
+1927-Babe Ruth,stat_category,misclassification,"Value 158.0 unusual for Home Runs, changed to Hits",medium,Changed from Home Runs to Hits
+1927-Babe Ruth,stat_value,out_of_range,Value 0.772 outside expected range for Batting Average,high,
+1927-Total Bases,stat_category,misclassification,"Value 447.0 unusual for Home Runs, changed to Total Bases",medium,Changed from Home Runs to Total Bases
+1927-New York,team,missing_value,Team name is missing or too short,high,
+1927-New York,stat_value,out_of_range,Value 635.0 outside expected range for Home Runs,high,
+1927-New York,team,missing_value,Team name is missing or too short,high,
+1927-New York,team,missing_value,Team name is missing or too short,high,
+1927-New York,stat_category,misclassification,"Value 158.0 unusual for Home Runs, changed to Hits",medium,Changed from Home Runs to Hits
+1927-New York,team,missing_value,Team name is missing or too short,high,
+1927-New York,stat_value,out_of_range,Value 975.0 outside expected range for Home Runs,high,
+1927-New York,team,missing_value,Team name is missing or too short,high,
+1927-New York,stat_value,out_of_range,Value 0.489 outside expected range for Batting Average,high,
+1927-Stolen Bases,stat_category,misclassification,"Value 139.0 unusual for Home Runs, changed to Hits",medium,Changed from Home Runs to Hits
+1927-New York,team,missing_value,Team name is missing or too short,high,
+1927-New York,stat_category,misclassification,"Value 103.0 unusual for Home Runs, changed to Hits",medium,Changed from Home Runs to Hits
+1927-Complete Games,stat_category,misclassification,"Value 85.0 unusual for Home Runs, changed to RBI",medium,Changed from Home Runs to RBI
+1927-New York,team,missing_value,Team name is missing or too short,high,
+1927-Fewest Walks Allowed,stat_category,misclassification,"Value 409.0 unusual for Home Runs, changed to Total Bases",medium,Changed from Home Runs to Total Bases
+1927-New York,team,missing_value,Team name is missing or too short,high,
+2000-Jason Giambi,stat_category,misclassification,"Value 137.0 unusual for Home Runs, changed to Hits",medium,Changed from Home Runs to Hits
+2000-Darin Erstad,stat_category,misclassification,"Value 240.0 unusual for Home Runs, changed to Hits",medium,Changed from Home Runs to Hits
+2000-On Base Percentage,stat_value,out_of_range,Value 0.476 outside expected range for Batting Average,high,
+2000-Edgar Martinez,stat_category,misclassification,"Value 145.0 unusual for Home Runs, changed to Hits",medium,Changed from Home Runs to Hits
+2000-Johnny Damon,stat_category,misclassification,"Value 136.0 unusual for Home Runs, changed to Hits",medium,Changed from Home Runs to Hits
+2000-Manny Ramirez,stat_value,out_of_range,Value 0.697 outside expected range for Batting Average,high,
+2000-Total Bases,stat_category,misclassification,"Value 378.0 unusual for Home Runs, changed to Total Bases",medium,Changed from Home Runs to Total Bases
+2000-Stolen Bases,stat_category,misclassification,"Value 126.0 unusual for Home Runs, changed to Hits",medium,Changed from Home Runs to Hits
+2000-Fewest Walks Allowed,stat_category,misclassification,"Value 496.0 unusual for Home Runs, changed to Total Bases",medium,Changed from Home Runs to Total Bases
+2023-Seattle Mariners,stat_category,misclassification,"Value 94.0 unusual for Home Runs, changed to RBI",medium,Changed from Home Runs to RBI
+2023-Marcus Semien,stat_category,misclassification,"Value 185.0 unusual for Home Runs, changed to Hits",medium,Changed from Home Runs to Hits
+2023-Shohei Ohtani,team,missing_value,Team name is missing or too short,high,
+2023-On Base Percentage,stat_value,suspicious_value,Value 0.412 is unusually high for Batting Average,medium,
+2023-Kyle Tucker,stat_category,misclassification,"Value 112.0 unusual for Home Runs, changed to Hits",medium,Changed from Home Runs to Hits
+2023-Marcus Semien,stat_category,misclassification,"Value 122.0 unusual for Home Runs, changed to Hits",medium,Changed from Home Runs to Hits
+2023-Shohei Ohtani,team,missing_value,Team name is missing or too short,high,
+2023-Shohei Ohtani,stat_value,out_of_range,Value 0.654 outside expected range for Batting Average,high,
+2023-Stolen Bases,stat_value,suspicious_value,Value 67.0 is unusually high for Home Runs,medium,
+2023-Total Bases,stat_category,misclassification,"Value 325.0 unusual for Home Runs, changed to Total Bases",medium,Changed from Home Runs to Total Bases
+1927-Complete Games,stat_category,misclassification,Corrected ERA to Complete Games,medium,
+1927-Garland Braxton,stat_value,out_of_range,Value 58.0 outside expected range for ERA,high,
+1927-Garland Braxton,stat_value,out_of_range,Value 13.0 outside expected range for ERA,high,
+1927-Lefty Grove,stat_category,misclassification,Corrected ERA to Strikeouts,medium,
+1927-Winning Percentage,stat_value,out_of_range,Value 0.759 outside expected range for Batting Average,high,
+1927-Waite Hoyt,stat_category,misclassification,Corrected ERA to Complete Games,medium,
+2000-Complete Games,stat_value,out_of_range,Value 9.0 outside expected range for ERA,high,
+2000-Kelly Wunsch,stat_value,out_of_range,Value 83.0 outside expected range for ERA,high,
+2000-Todd Jones,stat_value,out_of_range,Value 42.0 outside expected range for ERA,high,
+2000-Pedro Martinez,stat_category,misclassification,Corrected ERA to Strikeouts,medium,
+2000-Winning Percentage,stat_value,out_of_range,Value 0.769 outside expected range for Batting Average,high,
+2000-Tim Hudson,stat_category,misclassification,Corrected ERA to Complete Games,medium,
+2023-Matt Brash,stat_value,out_of_range,Value 78.0 outside expected range for ERA,high,
+2023-Emmanuel Clase,stat_value,out_of_range,Value 44.0 outside expected range for ERA,high,
+2023-Kevin Gausman,stat_category,misclassification,Corrected ERA to Strikeouts,medium,
+2023-Winning Percentage,stat_value,out_of_range,Value 0.789 outside expected range for Batting Average,high,
+2023-Chris Bassitt,stat_category,misclassification,Corrected ERA to Complete Games,medium,
+2023-Zach Eflin,stat_category,misclassification,Corrected ERA to Complete Games,medium,

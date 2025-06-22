@@ -40,3 +40,53 @@
 2025-06-21 13:50:49,320 - INFO - Completed scrape for year 2023
 2025-06-21 13:50:49,328 - INFO - Saved 101 hitting records to CSV
 2025-06-21 13:50:49,334 - INFO - Saved 137 pitching records to CSV
+2025-06-21 20:02:44,941 - INFO - Starting test scrape for years: [1927, 2000, 2023]
+2025-06-21 20:02:44,942 - INFO - Starting improved scrape for year 1927
+2025-06-21 20:02:44,942 - INFO - Fetching data for year 1927
+2025-06-21 20:02:47,170 - INFO - Successfully fetched 1927 - Page title: Baseball History in 1927 American League | Baseball Almanac
+2025-06-21 20:02:47,176 - INFO - Found 24 hitting records for 1927
+2025-06-21 20:02:47,181 - INFO - Found 8 pitching records for 1927
+2025-06-21 20:02:47,185 - INFO - Found 4 team standings for 1927
+2025-06-21 20:02:47,185 - INFO - Completed scrape for year 1927
+2025-06-21 20:02:47,186 - INFO - Starting improved scrape for year 2000
+2025-06-21 20:02:47,186 - INFO - Fetching data for year 2000
+2025-06-21 20:02:49,171 - INFO - Successfully fetched 2000 - Page title: Baseball History in 2000 American League by Baseball Almanac
+2025-06-21 20:02:49,180 - INFO - Found 19 hitting records for 2000
+2025-06-21 20:02:49,188 - INFO - Found 21 pitching records for 2000
+2025-06-21 20:02:49,192 - INFO - Found 4 team standings for 2000
+2025-06-21 20:02:49,193 - INFO - Completed scrape for year 2000
+2025-06-21 20:02:49,193 - INFO - Starting improved scrape for year 2023
+2025-06-21 20:02:49,194 - INFO - Fetching data for year 2023
+2025-06-21 20:02:51,192 - INFO - Successfully fetched 2023 - Page title: Baseball History in 2023 American League | Baseball Almanac
+2025-06-21 20:02:51,199 - INFO - Found 12 hitting records for 2023
+2025-06-21 20:02:51,205 - INFO - Found 25 pitching records for 2023
+2025-06-21 20:02:51,209 - INFO - Found 4 team standings for 2023
+2025-06-21 20:02:51,210 - INFO - Completed scrape for year 2023
+2025-06-21 20:02:51,246 - INFO - Saved 55 hitting records to CSV
+2025-06-21 20:02:51,249 - INFO - Saved 54 pitching records to CSV
+2025-06-21 20:02:51,255 - INFO - Saved 12 team standings to CSV
+2025-06-21 20:14:48,702 - INFO - Starting test scrape for years: [1927, 2000, 2023]
+2025-06-21 20:14:48,702 - INFO - Starting improved scrape for year 1927
+2025-06-21 20:14:48,702 - INFO - Fetching data for year 1927
+2025-06-21 20:14:52,005 - INFO - Successfully fetched 1927 - Page title: Baseball History in 1927 American League | Baseball Almanac
+2025-06-21 20:14:52,011 - INFO - Found 24 hitting records for 1927
+2025-06-21 20:14:52,016 - INFO - Found 8 pitching records for 1927
+2025-06-21 20:14:52,018 - INFO - Found 4 team standings for 1927
+2025-06-21 20:14:52,018 - INFO - Completed scrape for year 1927
+2025-06-21 20:14:52,019 - INFO - Starting improved scrape for year 2000
+2025-06-21 20:14:52,019 - INFO - Fetching data for year 2000
+2025-06-21 20:14:54,025 - INFO - Successfully fetched 2000 - Page title: Baseball History in 2000 American League by Baseball Almanac
+2025-06-21 20:14:54,034 - INFO - Found 16 hitting records for 2000
+2025-06-21 20:14:54,045 - INFO - Found 21 pitching records for 2000
+2025-06-21 20:14:54,049 - INFO - Found 4 team standings for 2000
+2025-06-21 20:14:54,049 - INFO - Completed scrape for year 2000
+2025-06-21 20:14:54,050 - INFO - Starting improved scrape for year 2023
+2025-06-21 20:14:54,050 - INFO - Fetching data for year 2023
+2025-06-21 20:14:56,021 - INFO - Successfully fetched 2023 - Page title: Baseball History in 2023 American League | Baseball Almanac
+2025-06-21 20:14:56,027 - INFO - Found 12 hitting records for 2023
+2025-06-21 20:14:56,035 - INFO - Found 25 pitching records for 2023
+2025-06-21 20:14:56,040 - INFO - Found 4 team standings for 2023
+2025-06-21 20:14:56,040 - INFO - Completed scrape for year 2023
+2025-06-21 20:14:56,048 - INFO - Saved 52 hitting records to CSV
+2025-06-21 20:14:56,051 - INFO - Saved 54 pitching records to CSV
+2025-06-21 20:14:56,055 - INFO - Saved 12 team standings to CSV
