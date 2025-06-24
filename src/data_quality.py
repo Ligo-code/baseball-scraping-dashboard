@@ -1,21 +1,22 @@
+import os
+import re
 import pandas as pd
 import numpy as np
 import logging
-from typing import Dict, List, Tuple, Optional
-import re
+from typing import List, Dict, Optional, Tuple, Set
 from dataclasses import dataclass
 from enum import Enum
-import os
+
 
 class QualityLevel(Enum):
     HIGH = "high"
-    MEDIUM = "medium"  
+    MEDIUM = "medium"
     LOW = "low"
     INVALID = "invalid"
 
+
 @dataclass
 class QualityIssue:
-    """Represents a data quality issue"""
     record_id: str
     field: str
     issue_type: str
@@ -23,452 +24,556 @@ class QualityIssue:
     severity: QualityLevel
     suggested_fix: Optional[str] = None
 
+
 class BaseballDataValidator:
-    """
-    Data quality pipeline for baseball statistics
-    Validates, cleans, and enriches scraped data
-    """
-    
     def __init__(self):
         self.setup_logging()
+        self.quality_issues: List[QualityIssue] = []
         
-        # Historical ranges for validation (based on MLB history)
+        # Valid hitting statistics
+        self.valid_hitting_stats = {
+            'Batting Average', 'Home Runs', 'RBIs', 'Hits', 'Runs',
+            'Doubles', 'Triples', 'Total Bases', 'Slugging Average', 
+            'On-Base Percentage', 'Walks'
+        }
+        
+        # Valid pitching statistics  
+        self.valid_pitching_stats = {
+            'Wins', 'Losses', 'ERA', 'Strikeouts', 'WHIP', 
+            'Saves', 'Games Started', 'Complete Games', 'Shutouts',
+            'Innings Pitched', 'Games'
+        }
+        
+        # Valid event types for notable events
+        self.valid_event_types = {
+            'Record', 'Retirement', 'Debut', 'Death', 'No-Hitter', 
+            'World Series', 'Achievement', 'Milestone', 'Historical'
+        }
+        
+        # Statistical ranges for validation
         self.stat_ranges = {
             "Home Runs": {"min": 1, "max": 75, "typical_max": 65},
-            "RBI": {"min": 10, "max": 200, "typical_max": 165},
+            "RBIs": {"min": 10, "max": 200, "typical_max": 165},
             "Hits": {"min": 50, "max": 300, "typical_max": 250},
             "Runs": {"min": 20, "max": 200, "typical_max": 150},
             "Batting Average": {"min": 0.180, "max": 0.450, "typical_max": 0.400},
             "Doubles": {"min": 5, "max": 70, "typical_max": 60},
             "Triples": {"min": 1, "max": 30, "typical_max": 25},
-            "Stolen Bases": {"min": 1, "max": 150, "typical_max": 100},
             "Total Bases": {"min": 50, "max": 500, "typical_max": 450},
-            
-            # Pitching stats
+            "Slugging Average": {"min": 0.300, "max": 0.900, "typical_max": 0.800},
+            "On-Base Percentage": {"min": 0.250, "max": 0.550, "typical_max": 0.500},
+            "Walks": {"min": 20, "max": 200, "typical_max": 170},
             "ERA": {"min": 1.00, "max": 8.00, "typical_max": 6.00},
             "Wins": {"min": 5, "max": 35, "typical_max": 30},
+            "Losses": {"min": 5, "max": 25, "typical_max": 20},
             "Strikeouts": {"min": 50, "max": 400, "typical_max": 350},
             "Complete Games": {"min": 1, "max": 40, "typical_max": 35},
             "Shutouts": {"min": 1, "max": 15, "typical_max": 12},
             "Saves": {"min": 10, "max": 65, "typical_max": 55},
-            "Innings Pitched": {"min": 100, "max": 400, "typical_max": 350}
+            "Games": {"min": 10, "max": 90, "typical_max": 80},
+            "WHIP": {"min": 0.80, "max": 2.50, "typical_max": 2.00}
         }
         
-        # Common team name mappings (for fixing team names)
-        self.team_mappings = {
-            "New York": "New York Yankees",
-            "Yankees": "New York Yankees", 
-            "Boston": "Boston Red Sox",
-            "Detroit": "Detroit Tigers",
-            "Chicago": "Chicago White Sox",
-            "Philadelphia": "Philadelphia Athletics",
-            "St. Louis": "St. Louis Browns",
-            "Cleveland": "Cleveland Indians",
-            "Washington": "Washington Senators"
+        # Team name patterns for identification
+        self.team_keywords = {
+            'yankees', 'red sox', 'tigers', 'white sox', 'athletics', 'orioles', 
+            'angels', 'rangers', 'mariners', 'astros', 'twins', 'royals', 'indians', 
+            'guardians', 'rays', 'brewers', 'cubs', 'pirates', 'cardinals', 'reds',
+            'dodgers', 'giants', 'padres', 'rockies', 'diamondbacks', 'mets', 'phillies',
+            'nationals', 'marlins', 'braves', 'senators', 'pilots', 'browns', 'cleveland',
+            'new york', 'detroit', 'chicago', 'boston', 'minnesota', 'seattle', 
+            'kansas city', 'tampa bay', 'texas', 'oakland', 'toronto', 'philadelphia'
         }
         
-        self.quality_issues = []
-        
+        # Words that indicate noise in participants field
+        self.noise_words = {
+            'On', 'The', 'Star', 'Game', 'Power', 'Rankings', 'Team', 
+            'Standings', 'New', 'York', 'Series', 'Championship', 'During',
+            'After', 'Before', 'When', 'Where', 'How', 'Why', 'What'
+        }
+
     def setup_logging(self):
-        """Setup logging for data quality pipeline"""
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
-    
+
     def safe_str(self, value) -> str:
-        """Safely convert any value to string"""
-        if pd.isna(value) or value is None:
-            return ""
-        return str(value).strip()
-    
+        return str(value).strip() if pd.notna(value) else ""
+
     def safe_float(self, value) -> Optional[float]:
-        """Safely convert value to float"""
-        if pd.isna(value) or value is None:
-            return None
         try:
             return float(value)
-        except (ValueError, TypeError):
+        except (TypeError, ValueError):
             return None
-    
-    def validate_hitting_record(self, record: Dict) -> Tuple[Dict, List[QualityIssue]]:
-        """
-        Validate and clean a single hitting record
-        """
-        issues = []
-        cleaned_record = record.copy()
-        
-        # Safe extraction of fields
-        player_name = self.safe_str(record.get('player_name', ''))
-        team = self.safe_str(record.get('team', ''))
-        stat_category = self.safe_str(record.get('stat_category', ''))
-        stat_value = self.safe_float(record.get('stat_value'))
-        year = record.get('year', 'unknown')
-        
-        record_id = f"{year}-{player_name}"
-        
-        # 1. Validate player name
-        if not player_name or len(player_name) < 3:
-            issues.append(QualityIssue(
-                record_id=record_id,
-                field="player_name",
-                issue_type="missing_value",
-                description="Player name is missing or too short",
-                severity=QualityLevel.INVALID
-            ))
-        elif not re.match(r'^[A-Z][a-z]+ [A-Z][a-z]+', player_name):
-            issues.append(QualityIssue(
-                record_id=record_id,
-                field="player_name", 
-                issue_type="format_issue",
-                description=f"Player name format unusual: {player_name}",
-                severity=QualityLevel.MEDIUM
-            ))
-        
-        # 2. Validate and fix team name
-        if team in self.team_mappings:
-            cleaned_record['team'] = self.team_mappings[team]
-            cleaned_record['team_standardized'] = True
-        elif len(team) < 3:
-            issues.append(QualityIssue(
-                record_id=record_id,
-                field="team",
-                issue_type="missing_value", 
-                description="Team name is missing or too short",
-                severity=QualityLevel.HIGH
-            ))
-        
-        # 3. Validate statistical category and value
-        if stat_category in self.stat_ranges and stat_value is not None:
-            ranges = self.stat_ranges[stat_category]
-            
-            # Check if value is completely out of range
-            if stat_value < ranges["min"] or stat_value > ranges["max"]:
-                # Try to fix common misclassifications
-                fixed_category = self.suggest_stat_category_fix(stat_value, stat_category, "hitting")
-                if fixed_category:
-                    issues.append(QualityIssue(
-                        record_id=record_id,
-                        field="stat_category",
-                        issue_type="misclassification",
-                        description=f"Value {stat_value} unusual for {stat_category}, changed to {fixed_category}",
-                        severity=QualityLevel.MEDIUM,
-                        suggested_fix=f"Changed from {stat_category} to {fixed_category}"
-                    ))
-                    cleaned_record['stat_category'] = fixed_category
-                    cleaned_record['stat_category_corrected'] = True
-                else:
-                    issues.append(QualityIssue(
-                        record_id=record_id,
-                        field="stat_value",
-                        issue_type="out_of_range",
-                        description=f"Value {stat_value} outside expected range for {stat_category}",
-                        severity=QualityLevel.HIGH
-                    ))
-            
-            # Check if value is suspicious (within range but unusual)
-            elif stat_value > ranges["typical_max"]:
-                issues.append(QualityIssue(
-                    record_id=record_id,
-                    field="stat_value", 
-                    issue_type="suspicious_value",
-                    description=f"Value {stat_value} is unusually high for {stat_category}",
-                    severity=QualityLevel.MEDIUM
-                ))
-        elif stat_value is None and stat_category:
-            issues.append(QualityIssue(
-                record_id=record_id,
-                field="stat_value",
-                issue_type="missing_value",
-                description="Statistical value is missing",
-                severity=QualityLevel.HIGH
-            ))
-        
-        # 4. Add quality score
-        quality_score = self.calculate_quality_score(issues)
-        cleaned_record['quality_score'] = quality_score
-        cleaned_record['quality_level'] = self.get_quality_level(quality_score).value
-        
-        return cleaned_record, issues
-    
-    def validate_pitching_record(self, record: Dict) -> Tuple[Dict, List[QualityIssue]]:
-        """Validate and clean a single pitching record"""
-        issues = []
-        cleaned_record = record.copy()
-        
-        # Safe extraction of fields
-        player_name = self.safe_str(record.get('player_name', ''))
-        team = self.safe_str(record.get('team', ''))
-        stat_category = self.safe_str(record.get('stat_category', ''))
-        stat_value = self.safe_float(record.get('stat_value'))
-        year = record.get('year', 'unknown')
-        
-        record_id = f"{year}-{player_name}"
-        
-        # Similar validation as hitting, but for pitching stats
-        if stat_category in self.stat_ranges and stat_value is not None:
-            ranges = self.stat_ranges[stat_category]
-            
-            if stat_value < ranges["min"] or stat_value > ranges["max"]:
-                fixed_category = self.suggest_stat_category_fix(stat_value, stat_category, "pitching")
-                if fixed_category:
-                    cleaned_record['stat_category'] = fixed_category
-                    cleaned_record['stat_category_corrected'] = True
-                    issues.append(QualityIssue(
-                        record_id=record_id,
-                        field="stat_category",
-                        issue_type="misclassification",
-                        description=f"Corrected {stat_category} to {fixed_category}",
-                        severity=QualityLevel.MEDIUM
-                    ))
-                else:
-                    issues.append(QualityIssue(
-                        record_id=record_id,
-                        field="stat_value",
-                        issue_type="out_of_range", 
-                        description=f"Value {stat_value} outside expected range for {stat_category}",
-                        severity=QualityLevel.HIGH
-                    ))
-        
-        # Validate team name
-        if team in self.team_mappings:
-            cleaned_record['team'] = self.team_mappings[team]
-            cleaned_record['team_standardized'] = True
-        
-        # Add quality metrics
-        quality_score = self.calculate_quality_score(issues)
-        cleaned_record['quality_score'] = quality_score
-        cleaned_record['quality_level'] = self.get_quality_level(quality_score).value
-        
-        return cleaned_record, issues
-    
-    def suggest_stat_category_fix(self, value: float, current_category: str, stat_type: str) -> Optional[str]:
-        """
-        Suggest a better statistical category based on value ranges
-        """
-        if stat_type == "hitting":
-            # Common misclassifications in hitting
-            if 100 <= value <= 300:  # Likely hits, not home runs
-                if current_category == "Home Runs":
-                    return "Hits"
-            elif 50 <= value <= 200 and current_category == "Home Runs":  # Likely RBI
-                return "RBI"
-            elif 200 <= value <= 500 and current_category in ["Home Runs", "RBI"]:  # Likely total bases
-                return "Total Bases"
-            elif 20 <= value <= 80 and current_category == "Hits":  # Likely home runs
-                return "Home Runs"
-        
-        elif stat_type == "pitching":
-            # Common pitching misclassifications  
-            if 15 <= value <= 40 and current_category == "ERA":  # Likely complete games or wins
-                return "Complete Games"
-            elif 100 <= value <= 400 and current_category in ["Wins", "ERA"]:  # Likely strikeouts
-                return "Strikeouts"
-        
-        return None
-    
-    def calculate_quality_score(self, issues: List[QualityIssue]) -> float:
-        """Calculate a quality score from 0-100 based on issues"""
-        if not issues:
-            return 100.0
-        
-        penalty = 0
-        for issue in issues:
-            if issue.severity == QualityLevel.INVALID:
-                penalty += 50
-            elif issue.severity == QualityLevel.HIGH:
-                penalty += 25
-            elif issue.severity == QualityLevel.MEDIUM:
-                penalty += 10
-            else:  # LOW
-                penalty += 5
-        
-        return max(0, 100 - penalty)
-    
-    def get_quality_level(self, score: float) -> QualityLevel:
-        """Convert numeric score to quality level"""
-        if score >= 90:
-            return QualityLevel.HIGH
-        elif score >= 70:
-            return QualityLevel.MEDIUM
-        elif score >= 50:
-            return QualityLevel.LOW
-        else:
-            return QualityLevel.INVALID
-    
-    def process_hitting_data(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, List[QualityIssue]]:
-        """Process entire hitting dataset"""
-        self.logger.info(f"Processing {len(df)} hitting records")
-        
-        cleaned_records = []
-        all_issues = []
-        
-        for _, record in df.iterrows():
-            cleaned_record, issues = self.validate_hitting_record(record.to_dict())
-            cleaned_records.append(cleaned_record)
-            all_issues.extend(issues)
-        
-        cleaned_df = pd.DataFrame(cleaned_records)
-        
-        self.logger.info(f"Found {len(all_issues)} quality issues in hitting data")
-        return cleaned_df, all_issues
-    
-    def process_pitching_data(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, List[QualityIssue]]:
-        """Process entire pitching dataset"""
-        self.logger.info(f"Processing {len(df)} pitching records")
-        
-        cleaned_records = []
-        all_issues = []
-        
-        for _, record in df.iterrows():
-            cleaned_record, issues = self.validate_pitching_record(record.to_dict())
-            cleaned_records.append(cleaned_record)
-            all_issues.extend(issues)
-        
-        cleaned_df = pd.DataFrame(cleaned_records)
-        
-        self.logger.info(f"Found {len(all_issues)} quality issues in pitching data")
-        return cleaned_df, all_issues
-    
-    def generate_quality_report(self, issues: List[QualityIssue]) -> Dict:
-        """Generate comprehensive quality report"""
-        if not issues:
-            return {"total_issues": 0, "quality_summary": "No issues found"}
-        
-        # Group issues by type and severity
-        by_severity = {}
-        by_type = {}
-        by_field = {}
-        
-        for issue in issues:
-            # By severity
-            severity_key = issue.severity.value
-            by_severity[severity_key] = by_severity.get(severity_key, 0) + 1
-            
-            # By type
-            by_type[issue.issue_type] = by_type.get(issue.issue_type, 0) + 1
-            
-            # By field
-            by_field[issue.field] = by_field.get(issue.field, 0) + 1
-        
-        # Calculate overall quality metrics
-        total_issues = len(issues)
-        critical_issues = by_severity.get('invalid', 0) + by_severity.get('high', 0)
-        
-        return {
-            "total_issues": total_issues,
-            "critical_issues": critical_issues,
-            "by_severity": by_severity,
-            "by_type": by_type,
-            "by_field": by_field,
-            "quality_summary": f"{total_issues} total issues, {critical_issues} critical"
-        }
-    
-    def save_quality_report(self, issues: List[QualityIssue], filename: str = "data/processed/quality_report.csv"):
-        """Save quality issues to CSV for analysis"""
-        os.makedirs("data/processed", exist_ok=True)
-        
-        if issues:
-            issues_data = []
-            for issue in issues:
-                issues_data.append({
-                    "record_id": issue.record_id,
-                    "field": issue.field,
-                    "issue_type": issue.issue_type,
-                    "description": issue.description,
-                    "severity": issue.severity.value,
-                    "suggested_fix": issue.suggested_fix
-                })
-            
-            issues_df = pd.DataFrame(issues_data)
-            issues_df.to_csv(filename, index=False)
-            self.logger.info(f"Saved {len(issues)} quality issues to {filename}")
 
-def run_data_quality_pipeline():
-    """
-    Main function to run the complete data quality pipeline
-    """
-    print("Baseball Data Quality Pipeline")
-    print("="*50)
+    def is_team_record(self, player_name: str, team: str = "") -> bool:
+        """Detect if this is team-level data rather than individual player data"""
+        name_lower = player_name.lower() if player_name else ""
+        team_lower = team.lower() if team else ""
+        
+        # Direct team name matches
+        if any(keyword in name_lower for keyword in self.team_keywords):
+            return True
+            
+        # Multi-word team patterns
+        if len(player_name.split()) > 2 and any(word in name_lower for word in ['yankees', 'red sox', 'white sox']):
+            return True
+            
+        # Statistical category names appearing as player names
+        stat_indicators = [
+            'batting average', 'home runs', 'doubles', 'triples', 'hits', 'runs',
+            'total bases', 'slugging', 'wins', 'losses', 'era', 'strikeouts', 'saves'
+        ]
+        if any(indicator in name_lower for indicator in stat_indicators):
+            return True
+            
+        return False
+
+    def has_field_confusion(self, record: Dict) -> bool:
+        """Check if player_name and stat_category fields are confused"""
+        player = self.safe_str(record.get("player_name", ""))
+        stat_cat = self.safe_str(record.get("stat_category", ""))
+        
+        # If player_name matches stat_category exactly
+        if player == stat_cat:
+            return True
+            
+        # If player_name contains statistical category names
+        stat_categories = [
+            'batting average', 'home runs', 'doubles', 'triples', 'hits', 'runs',
+            'stolen bases', 'total bases', 'slugging average', 'wins', 'losses',
+            'games', 'strikeouts', 'saves', 'era', 'complete games', 'shutouts'
+        ]
+        player_lower = player.lower()
+        if any(stat_cat.lower() == player_lower for stat_cat in stat_categories):
+            return True
+            
+        # Check if it's exactly a stat category name
+        if player in ['Batting Average', 'Home Runs', 'Doubles', 'Triples', 'Hits', 'Runs',
+                      'Stolen Bases', 'Total Bases', 'Slugging Average', 'Wins', 'Losses',
+                      'Games', 'Strikeouts', 'Saves', 'ERA', 'Complete Games', 'Shutouts']:
+            return True
+            
+        return False
+
+    def fix_field_order(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Fix field order when player_name and team are swapped"""
+        df_fixed = df.copy()
+        
+        # Find rows where player_name contains stat categories
+        stat_categories = [
+            'Batting Average', 'Home Runs', 'Doubles', 'Triples', 'Hits', 'Runs',
+            'Stolen Bases', 'Total Bases', 'Slugging Average', 'Games', 'Wins', 'Losses'
+        ]
+        
+        for idx, row in df_fixed.iterrows():
+            player_name = self.safe_str(row.get('player_name', ''))
+            team = self.safe_str(row.get('team', ''))
+            
+            # If player_name is actually a stat category, swap the fields
+            if player_name in stat_categories and len(team) > 3:
+                # Swap: real player name is in 'team' field
+                df_fixed.loc[idx, 'player_name'] = team
+                df_fixed.loc[idx, 'team'] = 'Unknown'  # We'll need to get team info elsewhere
+                
+                self.logger.info(f"Fixed field order: '{player_name}' -> player='{team}', stat='{player_name}'")
+        
+        return df_fixed
+
+    def clean_hitting_leaders(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, List[QualityIssue]]:
+        """Clean hitting leaders data with specific focus on identified issues"""
+        self.logger.info("Cleaning hitting leaders data...")
+        issues = []
+        original_count = len(df)
+        
+        # First, fix field order issues
+        df_fixed = self.fix_field_order(df)
+        
+        # Show examples of what was fixed
+        self.logger.info("Examples of field order fixes applied")
+        
+        # Now check for remaining issues after fixing
+        remaining_confusion = df_fixed[df_fixed.apply(lambda row: self.has_field_confusion(row.to_dict()), axis=1)]
+        self.logger.info(f"Remaining field confusion issues: {len(remaining_confusion)}")
+        
+        # Filter out any remaining team records (after field fixes)
+        team_mask = df_fixed.apply(lambda row: self.is_team_record(
+            self.safe_str(row.get("player_name", "")),
+            self.safe_str(row.get("team", ""))
+        ), axis=1)
+        
+        df_clean = df_fixed[~team_mask].copy()
+        team_records_removed = team_mask.sum()
+        self.logger.info(f"Removed {team_records_removed} remaining team-level records")
+        
+        # Remove any remaining records with field confusion (should be very few now)
+        confusion_mask = df_clean.apply(lambda row: self.has_field_confusion(row.to_dict()), axis=1)
+        df_clean = df_clean[~confusion_mask]
+        confusion_removed = confusion_mask.sum()
+        self.logger.info(f"Removed {confusion_removed} remaining records with field confusion")
+        
+        # Filter to valid hitting statistics only
+        valid_stats_mask = df_clean['stat_category'].isin(self.valid_hitting_stats)
+        invalid_stats = df_clean[~valid_stats_mask]['stat_category'].unique()
+        if len(invalid_stats) > 0:
+            self.logger.info(f"Invalid stats found: {list(invalid_stats)}")
+        
+        df_clean = df_clean[valid_stats_mask]
+        invalid_stats_removed = (~valid_stats_mask).sum()
+        self.logger.info(f"Removed {invalid_stats_removed} records with invalid hitting stats")
+        
+        # Remove records with missing or invalid values
+        before_cleanup = len(df_clean)
+        df_clean = df_clean.dropna(subset=['player_name', 'stat_value'])
+        df_clean = df_clean[df_clean['stat_value'] > 0]
+        df_clean = df_clean[df_clean['player_name'].str.len() >= 3]
+        after_cleanup = len(df_clean)
+        self.logger.info(f"Removed {before_cleanup - after_cleanup} records with missing/invalid values")
+        
+        # Clean player names
+        df_clean['player_name'] = df_clean['player_name'].str.replace(r'["\',]', '', regex=True)
+        df_clean['player_name'] = df_clean['player_name'].str.strip()
+        
+        # Recalculate quality scores
+        df_clean = self.recalculate_quality_scores(df_clean)
+        
+        final_count = len(df_clean)
+        retention_rate = (final_count / original_count) * 100
+        self.logger.info(f"Hitting leaders: {original_count} -> {final_count} ({retention_rate:.1f}% retained)")
+        
+        return df_clean.reset_index(drop=True), issues
+
+    def clean_pitching_leaders(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, List[QualityIssue]]:
+        """Clean pitching leaders data with field reordering fixes"""
+        self.logger.info("Cleaning pitching leaders data...")
+        issues = []
+        original_count = len(df)
+        
+        # Fix field confusion - when player_name contains stat categories
+        stat_category_names = ['Games', 'Wins', 'Losses', 'Strikeouts', 'Saves']
+        
+        for idx, row in df.iterrows():
+            player_name = self.safe_str(row.get('player_name', ''))
+            team = self.safe_str(row.get('team', ''))
+            stat_category = self.safe_str(row.get('stat_category', ''))
+            
+            # If player_name is actually a stat category
+            if player_name in stat_category_names:
+                # Shift fields: player_name -> team, team -> unknown
+                df.loc[idx, 'player_name'] = team
+                df.loc[idx, 'team'] = 'Unknown'
+                
+                # Fix stat_category if it was "Unknown Pitching Stat"
+                if stat_category == 'Unknown Pitching Stat':
+                    df.loc[idx, 'stat_category'] = player_name
+        
+        # Remove records with "Unknown Pitching Stat" that couldn't be fixed
+        unknown_mask = df['stat_category'] == 'Unknown Pitching Stat'
+        df_clean = df[~unknown_mask].copy()
+        unknown_removed = unknown_mask.sum()
+        self.logger.info(f"Removed {unknown_removed} records with Unknown Pitching Stat")
+        
+        # Filter to valid pitching statistics only
+        valid_stats_mask = df_clean['stat_category'].isin(self.valid_pitching_stats)
+        df_clean = df_clean[valid_stats_mask]
+        invalid_stats_removed = (~valid_stats_mask).sum()
+        self.logger.info(f"Removed {invalid_stats_removed} records with invalid pitching stats")
+        
+        # Remove records with missing or invalid values
+        df_clean = df_clean.dropna(subset=['player_name', 'stat_value'])
+        df_clean = df_clean[df_clean['stat_value'] >= 0]
+        df_clean = df_clean[df_clean['player_name'].str.len() >= 3]
+        
+        # Clean player names
+        df_clean['player_name'] = df_clean['player_name'].str.replace(r'["\',]', '', regex=True)
+        df_clean['player_name'] = df_clean['player_name'].str.strip()
+        
+        # Recalculate quality scores
+        df_clean = self.recalculate_quality_scores(df_clean)
+        
+        final_count = len(df_clean)
+        retention_rate = (final_count / original_count) * 100
+        self.logger.info(f"Pitching leaders: {original_count} -> {final_count} ({retention_rate:.1f}% retained)")
+        
+        return df_clean.reset_index(drop=True), issues
+
+    def clean_notable_events(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Clean notable events data focusing on baseball relevance and data quality"""
+        self.logger.info("Cleaning notable events data...")
+        original_count = len(df)
+        
+        # Remove system/aggregated records
+        system_mask = (
+            df['description'].str.contains('Team Standings|All-Star Game', na=False, case=False) |
+            df['description'].str.match(r'^\d{4}.*\|.*', na=False)
+        )
+        df_clean = df[~system_mask].copy()
+        system_removed = system_mask.sum()
+        self.logger.info(f"Removed {system_removed} system/aggregated records")
+        
+        # Filter for baseball-related events
+        baseball_keywords = [
+            'baseball', 'Major League', 'Yankees', 'Red Sox', 'home run', 'pitcher',
+            'World Series', 'batting', 'strikeout', 'rookie', 'manager', 'stadium',
+            'game', 'season', 'record', 'debut', 'retirement', 'no-hitter', 'MVP',
+            'All-Star', 'pennant', 'championship', 'playoff'
+        ]
+        
+        baseball_mask = df_clean['description'].str.contains(
+            '|'.join(baseball_keywords), case=False, na=False
+        )
+        
+        # Keep historically significant non-baseball events as context
+        historical_mask = df_clean['description'].str.contains(
+            'Nixon|September 11|9/11|World Trade Center|President', case=False, na=False
+        )
+        
+        keep_mask = baseball_mask | historical_mask
+        df_clean = df_clean[keep_mask]
+        non_baseball_removed = (~keep_mask).sum()
+        self.logger.info(f"Removed {non_baseball_removed} non-baseball events")
+        
+        # Clean event types
+        df_clean['event_type'] = df_clean.apply(self.normalize_event_type, axis=1)
+        
+        # Filter to valid event types
+        valid_events_mask = df_clean['event_type'].isin(self.valid_event_types)
+        df_clean = df_clean[valid_events_mask]
+        
+        # Clean participants field
+        df_clean['participants'] = df_clean['participants'].apply(self.clean_participants)
+        
+        # Clean description field
+        df_clean['description'] = df_clean['description'].str.replace(r'&[a-z]+;', ' ', regex=True)
+        df_clean['description'] = df_clean['description'].str.replace(r'\s+', ' ', regex=True)
+        df_clean['description'] = df_clean['description'].str.strip()
+        
+        # Recreate significance from description
+        df_clean['significance'] = df_clean['description'].str[:100] + '...'
+        
+        # Remove duplicates and very short descriptions
+        df_clean = df_clean.drop_duplicates(subset=['year', 'description'])
+        df_clean = df_clean[df_clean['description'].str.len() > 30]
+        
+        final_count = len(df_clean)
+        retention_rate = (final_count / original_count) * 100
+        self.logger.info(f"Notable events: {original_count} -> {final_count} ({retention_rate:.1f}% retained)")
+        
+        return df_clean.reset_index(drop=True)
+
+    def normalize_event_type(self, row) -> str:
+        """Normalize event_type based on description content"""
+        event_type = row['event_type']
+        description = row['description'].lower()
+        
+        # Fix misclassified events
+        if event_type == 'Death' and any(word in description for word in ['nixon', 'president', 'politics']):
+            return 'Historical'
+        elif event_type == 'Death' and 'lindbergh' in description:
+            return 'Achievement'
+        elif event_type == 'Record' and any(word in description for word in ['record', 'set', 'broke', 'new']):
+            return 'Record'
+        elif 'retirement' in description or 'retired' in description:
+            return 'Retirement'
+        elif 'debut' in description or 'first' in description:
+            return 'Debut'
+        elif 'no-hitter' in description or 'no hitter' in description:
+            return 'No-Hitter'
+        elif 'world series' in description:
+            return 'World Series'
+        else:
+            return event_type if event_type in self.valid_event_types else 'Historical'
+
+    def clean_participants(self, participants_str: str) -> str:
+        """Clean the participants field by removing noise words and formatting"""
+        if pd.isna(participants_str):
+            return ""
+        
+        # Split by commas
+        parts = str(participants_str).split(',')
+        cleaned_parts = []
+        
+        for part in parts:
+            part = part.strip()
+            words = part.split()
+            
+            # Filter out noise words and very short words
+            filtered_words = [
+                word for word in words 
+                if word not in self.noise_words and len(word) > 2
+            ]
+            
+            if filtered_words:
+                cleaned_part = ' '.join(filtered_words)
+                if len(cleaned_part) > 3:
+                    cleaned_parts.append(cleaned_part)
+        
+        # Return up to 5 participants
+        return ', '.join(cleaned_parts[:5])
+
+    def recalculate_quality_scores(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Recalculate quality scores based on data completeness and validity"""
+        df = df.copy()
+        df['quality_score'] = 100
+        
+        # Penalize missing team information
+        no_team_mask = df['team'].isna() | (df['team'] == 'Unknown') | (df['team'] == '')
+        df.loc[no_team_mask, 'quality_score'] -= 25
+        
+        # Penalize short player names
+        short_name_mask = df['player_name'].str.len() < 5
+        df.loc[short_name_mask, 'quality_score'] -= 15
+        
+        # Penalize statistical outliers
+        for stat_category in df['stat_category'].unique():
+            if stat_category in self.stat_ranges:
+                stat_mask = df['stat_category'] == stat_category
+                stat_values = df.loc[stat_mask, 'stat_value']
+                
+                if len(stat_values) > 1:
+                    ranges = self.stat_ranges[stat_category]
+                    
+                    # Hard outliers (outside min/max)
+                    hard_outlier_mask = stat_mask & (
+                        (df['stat_value'] < ranges['min']) | 
+                        (df['stat_value'] > ranges['max'])
+                    )
+                    df.loc[hard_outlier_mask, 'quality_score'] -= 50
+                    
+                    # Soft outliers (above typical max)
+                    soft_outlier_mask = stat_mask & (df['stat_value'] > ranges['typical_max'])
+                    df.loc[soft_outlier_mask, 'quality_score'] -= 20
+        
+        # Set quality levels
+        df['quality_level'] = pd.cut(
+            df['quality_score'],
+            bins=[0, 50, 70, 85, 100],
+            labels=['invalid', 'low', 'medium', 'high'],
+            include_lowest=True
+        )
+        
+        return df
+
+    def generate_quality_report(self, original_data: Dict[str, pd.DataFrame], 
+                              cleaned_data: Dict[str, pd.DataFrame]) -> Dict:
+        """Generate comprehensive quality report"""
+        report = {}
+        
+        for dataset_name in original_data:
+            if dataset_name not in cleaned_data:
+                continue
+                
+            original_df = original_data[dataset_name]
+            cleaned_df = cleaned_data[dataset_name]
+            
+            report[dataset_name] = {
+                'original_rows': len(original_df),
+                'cleaned_rows': len(cleaned_df),
+                'retention_rate': round((len(cleaned_df) / len(original_df)) * 100, 1),
+                'records_removed': len(original_df) - len(cleaned_df)
+            }
+            
+            if 'quality_level' in cleaned_df.columns:
+                report[dataset_name]['quality_distribution'] = cleaned_df['quality_level'].value_counts().to_dict()
+            
+            if 'player_name' in cleaned_df.columns:
+                report[dataset_name]['unique_players'] = cleaned_df['player_name'].nunique()
+            
+            if 'year' in cleaned_df.columns:
+                years = sorted(cleaned_df['year'].unique())
+                report[dataset_name]['year_range'] = f"{years[0]} - {years[-1]}" if years else "N/A"
+            
+            if 'stat_category' in cleaned_df.columns:
+                report[dataset_name]['stat_categories'] = sorted(cleaned_df['stat_category'].unique().tolist())
+        
+        return report
+
+    def save_issues(self, issues: List[QualityIssue], filename: str):
+        """Save quality issues to CSV file"""
+        if not issues:
+            self.logger.info("No quality issues to save")
+            return
+        
+        df = pd.DataFrame([issue.__dict__ for issue in issues])
+        df['severity'] = df['severity'].apply(lambda x: x.value)
+        df.to_csv(filename, index=False)
+        self.logger.info(f"Saved {len(issues)} quality issues to {filename}")
+
+
+def run_pipeline():
+    """Main pipeline execution function"""
+    print("Running comprehensive baseball data quality pipeline...")
+    
+    # Setup directories
+    os.makedirs("data/processed", exist_ok=True)
     
     validator = BaseballDataValidator()
     
-    try:
-        # Load raw data
-        hitting_df = pd.read_csv("data/raw/yearly_hitting_leaders.csv")
-        pitching_df = pd.read_csv("data/raw/yearly_pitching_leaders.csv")
+    # File paths - working directly with raw data
+    input_files = {
+        'hitting_leaders': 'data/raw/yearly_hitting_leaders.csv',
+        'pitching_leaders': 'data/raw/yearly_pitching_leaders.csv', 
+        'notable_events': 'data/raw/notable_events.csv'
+    }
+    
+    original_data = {}
+    cleaned_data = {}
+    all_issues = []
+    
+    # Process each dataset
+    for dataset_name, file_path in input_files.items():
+        try:
+            print(f"Processing {dataset_name}...")
+            df = pd.read_csv(file_path)
+            original_data[dataset_name] = df.copy()
+            
+            if dataset_name == 'hitting_leaders':
+                cleaned_df, issues = validator.clean_hitting_leaders(df)
+                all_issues.extend(issues)
+            elif dataset_name == 'pitching_leaders':
+                cleaned_df, issues = validator.clean_pitching_leaders(df)
+                all_issues.extend(issues)
+            elif dataset_name == 'notable_events':
+                cleaned_df = validator.clean_notable_events(df)
+            else:
+                cleaned_df = df
+            
+            cleaned_data[dataset_name] = cleaned_df
+            
+            # Save cleaned data directly as final files
+            output_path = f"data/processed/{dataset_name}_final.csv"
+            cleaned_df.to_csv(output_path, index=False)
+            print(f"Saved cleaned data to {output_path}")
+            
+        except FileNotFoundError:
+            print(f"Warning: {file_path} not found, skipping...")
+            continue
+        except Exception as e:
+            print(f"Error processing {dataset_name}: {e}")
+            continue
+    
+    # Generate and save quality report
+    if original_data and cleaned_data:
+        report = validator.generate_quality_report(original_data, cleaned_data)
         
-        print(f"Loaded {len(hitting_df)} hitting records and {len(pitching_df)} pitching records")
-        
-        # Process hitting data
-        print("\nProcessing hitting data...")
-        cleaned_hitting, hitting_issues = validator.process_hitting_data(hitting_df)
-        
-        # Process pitching data  
-        print("Processing pitching data...")
-        cleaned_pitching, pitching_issues = validator.process_pitching_data(pitching_df)
-        
-        # Combine all issues
-        all_issues = hitting_issues + pitching_issues
-        
-        # Generate quality report
-        quality_report = validator.generate_quality_report(all_issues)
-        
-        # Save cleaned data
-        os.makedirs("data/processed", exist_ok=True)
-        
-        cleaned_hitting.to_csv("data/processed/yearly_hitting_leaders_cleaned.csv", index=False)
-        cleaned_pitching.to_csv("data/processed/yearly_pitching_leaders_cleaned.csv", index=False)
-        
-        # Save quality report
-        validator.save_quality_report(all_issues)
-        
-        # Print summary
-        print(f"\nDATA QUALITY SUMMARY:")
-        print(f"Total records processed: {len(hitting_df) + len(pitching_df)}")
-        print(f"Quality issues found: {quality_report['total_issues']}")
-        print(f"Critical issues: {quality_report['critical_issues']}")
-        
-        if quality_report.get('by_severity'):
-            print(f"\nIssues by severity:")
-            for severity, count in quality_report['by_severity'].items():
-                print(f"  {severity}: {count}")
-        
-        if quality_report.get('by_type'):
-            print(f"\nMost common issues:")
-            sorted_types = sorted(quality_report['by_type'].items(), key=lambda x: x[1], reverse=True)
-            for issue_type, count in sorted_types[:5]:
-                print(f"  {issue_type}: {count}")
-        
-        print(f"\nCleaned data saved to data/processed/")
-        print(f"Quality report saved to data/processed/quality_report.csv")
-        
-        # Show some examples of corrections
-        corrected_hitting = cleaned_hitting[cleaned_hitting.get('stat_category_corrected', False) == True]
-        if len(corrected_hitting) > 0:
-            print(f"\nExample corrections in hitting data:")
-            for _, record in corrected_hitting.head(5).iterrows():
-                print(f"  {record['player_name']}: {record['stat_value']} -> {record['stat_category']}")
-        
-        corrected_pitching = cleaned_pitching[cleaned_pitching.get('stat_category_corrected', False) == True]
-        if len(corrected_pitching) > 0:
-            print(f"\nExample corrections in pitching data:")
-            for _, record in corrected_pitching.head(5).iterrows():
-                print(f"  {record['player_name']}: {record['stat_value']} -> {record['stat_category']}")
-        
-        return True
-        
-    except FileNotFoundError as e:
-        print(f"Error: Could not find data files. Make sure to run the scraper first.")
-        print(f"Missing file: {e}")
-        return False
-    except Exception as e:
-        print(f"Error in data quality pipeline: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+        print("\nQuality Report Summary:")
+        print("=" * 50)
+        for dataset, stats in report.items():
+            print(f"{dataset.upper()}:")
+            print(f"  Rows: {stats['original_rows']} -> {stats['cleaned_rows']} ({stats['retention_rate']}% retained)")
+            if 'unique_players' in stats:
+                print(f"  Unique players: {stats['unique_players']}")
+            if 'year_range' in stats:
+                print(f"  Year range: {stats['year_range']}")
+            if 'quality_distribution' in stats:
+                print(f"  Quality: {stats['quality_distribution']}")
+            print()
+    
+    # Save quality issues
+    validator.save_issues(all_issues, "data/processed/quality_issues_final.csv")
+    
+    print(f"Pipeline completed. Total issues found: {len(all_issues)}")
+    print("All final datasets saved with '_final.csv' suffix")
+
 
 if __name__ == "__main__":
-    success = run_data_quality_pipeline()
-    if success:
-        print("\nData quality pipeline completed successfully!")
-    else:
-        print("\nData quality pipeline failed - check error messages above")
+    run_pipeline()
