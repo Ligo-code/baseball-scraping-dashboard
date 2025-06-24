@@ -1,6 +1,9 @@
-selenium==4.15.0
-pandas==2.1.0
-streamlit==1.28.0
-plotly==5.17.0
-beautifulsoup4==4.12.0
-requests==2.31.0
+
+streamlit>=1.28.0
+pandas>=1.5.0
+plotly>=5.15.0
+selenium>=4.15.0
+beautifulsoup4>=4.12.0
+requests>=2.31.0
+sqlite3
+lxml>=4.9.0

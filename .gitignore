@@ -8,10 +8,6 @@ env/
 venv/
 .venv/
 
-# Data files 
-data/raw/*.csv
-database/*.db
-
 # IDE
 .vscode/
 .idea/

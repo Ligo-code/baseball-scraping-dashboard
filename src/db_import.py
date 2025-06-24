@@ -1,526 +1,480 @@
 import sqlite3
 import pandas as pd
-import logging
 import os
-from typing import List, Dict, Optional
-from datetime import datetime
+from typing import Dict, Any
 
-class BaseballDatabaseImporter:
-    """
-    Import cleaned baseball data into SQLite database with proper schema design
-    """
-    
-    def __init__(self, db_path: str = "database/baseball.db"):
-        """Initialize database importer"""
+class MLBDatabaseImporter:
+    def __init__(self, db_path: str = 'data/mlb_database.db'):
         self.db_path = db_path
-        self.setup_logging()
+        self.conn = None
         
-        # Ensure database directory exists
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        
-        # Connect to database
-        self.conn = sqlite3.connect(db_path)
-        self.conn.execute("PRAGMA foreign_keys = ON")  # Enable foreign key constraints
-        
-    def setup_logging(self):
-        """Setup logging for database operations"""
-        logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger(__name__)
+    def connect(self):
+        """Create database connection"""
+        try:
+            # Create data directory if it doesn't exist
+            os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+            
+            self.conn = sqlite3.connect(self.db_path)
+            # Disable foreign keys during import to avoid constraint issues
+            self.conn.execute("PRAGMA foreign_keys = OFF")
+            print(f"Connected to database: {self.db_path}")
+            
+        except sqlite3.Error as e:
+            print(f"Error connecting to database: {e}")
+            raise
     
-    def create_schema(self):
-        """Create database schema with proper tables and relationships"""
+    def create_tables(self):
+        """Create all tables with proper data types and constraints"""
         
-        self.logger.info("Creating database schema...")
-        
-        # Drop existing tables if they exist (for clean start)
+        # Drop existing tables to start fresh
         drop_tables = [
-            "DROP TABLE IF EXISTS hitting_leaders",
-            "DROP TABLE IF EXISTS pitching_leaders", 
-            "DROP TABLE IF EXISTS team_standings",
-            "DROP TABLE IF EXISTS data_quality_log"
+            "DROP TABLE IF EXISTS notable_events;",
+            "DROP TABLE IF EXISTS pitching_leaders;", 
+            "DROP TABLE IF EXISTS hitting_leaders;",
+            "DROP TABLE IF EXISTS standings;"
         ]
         
         for drop_sql in drop_tables:
             self.conn.execute(drop_sql)
         
-        # Create hitting_leaders table
-        hitting_table = """
-        CREATE TABLE hitting_leaders (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            year INTEGER NOT NULL,
-            rank INTEGER,
-            player_name TEXT NOT NULL,
-            team TEXT NOT NULL,
-            stat_category TEXT NOT NULL,
-            stat_value REAL NOT NULL,
-            quality_score REAL DEFAULT 100.0,
-            quality_level TEXT DEFAULT 'high',
-            team_standardized BOOLEAN DEFAULT FALSE,
-            stat_category_corrected BOOLEAN DEFAULT FALSE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(year, player_name, team, stat_category)
-        )
-        """
-        
-        # Create pitching_leaders table
-        pitching_table = """
-        CREATE TABLE pitching_leaders (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            year INTEGER NOT NULL,
-            rank INTEGER,
-            player_name TEXT NOT NULL,
-            team TEXT NOT NULL,
-            stat_category TEXT NOT NULL,
-            stat_value REAL NOT NULL,
-            quality_score REAL DEFAULT 100.0,
-            quality_level TEXT DEFAULT 'high',
-            team_standardized BOOLEAN DEFAULT FALSE,
-            stat_category_corrected BOOLEAN DEFAULT FALSE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(year, player_name, team, stat_category)
-        )
-        """
-        
-        # Create team_standings table
-        standings_table = """
-        CREATE TABLE team_standings (
+        # Team standings table (base table, no foreign keys)
+        standings_sql = """
+        CREATE TABLE standings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             year INTEGER NOT NULL,
             team_name TEXT NOT NULL,
-            wins INTEGER NOT NULL,
-            losses INTEGER NOT NULL,
-            win_pct REAL,
-            games_behind INTEGER DEFAULT NULL,
-            division TEXT DEFAULT NULL,
-            league TEXT DEFAULT 'AL',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            wins INTEGER NOT NULL CHECK (wins >= 0),
+            losses INTEGER NOT NULL CHECK (losses >= 0),
+            win_pct REAL NOT NULL CHECK (win_pct >= 0 AND win_pct <= 1),
+            games_played INTEGER GENERATED ALWAYS AS (wins + losses) STORED,
             UNIQUE(year, team_name)
-        )
+        );
         """
         
-        # Create data quality audit log
-        quality_log_table = """
-        CREATE TABLE data_quality_log (
+        # Hitting leaders table
+        hitting_sql = """
+        CREATE TABLE hitting_leaders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            record_id TEXT NOT NULL,
-            table_name TEXT NOT NULL,
-            field_name TEXT NOT NULL,
-            issue_type TEXT NOT NULL,
-            description TEXT NOT NULL,
-            severity TEXT NOT NULL,
-            suggested_fix TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
+            year INTEGER NOT NULL,
+            player_name TEXT NOT NULL,
+            team TEXT,
+            stat_category TEXT NOT NULL,
+            stat_value REAL NOT NULL
+        );
         """
         
-        # Execute table creation
-        tables = [hitting_table, pitching_table, standings_table, quality_log_table]
-        for table_sql in tables:
-            self.conn.execute(table_sql)
+        # Pitching leaders table  
+        pitching_sql = """
+        CREATE TABLE pitching_leaders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            year INTEGER NOT NULL,
+            player_name TEXT NOT NULL,
+            team TEXT,
+            stat_category TEXT NOT NULL,
+            stat_value REAL NOT NULL
+        );
+        """
         
-        # Create indexes for better query performance
+        # Notable events table
+        events_sql = """
+        CREATE TABLE notable_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            year INTEGER NOT NULL,
+            description TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            description_length INTEGER GENERATED ALWAYS AS (LENGTH(description)) STORED
+        );
+        """
+        
+        # Execute table creation in order
+        tables = {
+            'standings': standings_sql,
+            'hitting_leaders': hitting_sql, 
+            'pitching_leaders': pitching_sql,
+            'notable_events': events_sql
+        }
+        
+        for table_name, sql in tables.items():
+            try:
+                self.conn.execute(sql)
+                print(f"Created table: {table_name}")
+            except sqlite3.Error as e:
+                print(f"Error creating table {table_name}: {e}")
+                raise
+        
+        self.conn.commit()
+    
+    def validate_csv_file(self, file_path: str, required_columns: list) -> bool:
+        """Validate CSV file exists and has required columns"""
+        if not os.path.exists(file_path):
+            print(f"File not found: {file_path}")
+            return False
+        
+        try:
+            df = pd.read_csv(file_path, nrows=1)
+            missing_cols = set(required_columns) - set(df.columns)
+            if missing_cols:
+                print(f"Missing columns in {file_path}: {missing_cols}")
+                return False
+            return True
+        except Exception as e:
+            print(f"Error reading {file_path}: {e}")
+            return False
+    
+    def import_standings(self, file_path: str = 'data/raw/team_standings.csv'):
+        """Import team standings data"""
+        required_cols = ['year', 'team_name', 'wins', 'losses', 'win_pct']
+        
+        if not self.validate_csv_file(file_path, required_cols):
+            return False
+        
+        try:
+            df = pd.read_csv(file_path)
+            
+            # Data validation and cleaning
+            df = df.dropna(subset=required_cols)
+            df = df[(df['wins'] >= 0) & (df['losses'] >= 0)]
+            df = df[(df['win_pct'] >= 0) & (df['win_pct'] <= 1)]
+            
+            # Convert data types
+            df['year'] = df['year'].astype(int)
+            df['wins'] = df['wins'].astype(int)
+            df['losses'] = df['losses'].astype(int)
+            df['win_pct'] = df['win_pct'].astype(float)
+            
+            # Insert data using executemany for better performance
+            insert_sql = """
+            INSERT INTO standings (year, team_name, wins, losses, win_pct)
+            VALUES (?, ?, ?, ?, ?)
+            """
+            
+            data_tuples = [
+                (row['year'], row['team_name'], row['wins'], row['losses'], row['win_pct'])
+                for _, row in df.iterrows()
+            ]
+            
+            self.conn.executemany(insert_sql, data_tuples)
+            self.conn.commit()
+            
+            print(f"Imported {len(df)} standings records")
+            return True
+            
+        except Exception as e:
+            print(f"Error importing standings: {e}")
+            self.conn.rollback()
+            return False
+    
+    def import_hitting_leaders(self, file_path: str = 'data/raw/yearly_hitting_leaders.csv'):
+        """Import hitting leaders data"""
+        required_cols = ['year', 'player_name', 'stat_category', 'stat_value']
+        
+        if not self.validate_csv_file(file_path, required_cols):
+            return False
+        
+        try:
+            df = pd.read_csv(file_path)
+            
+            # Data cleaning
+            df = df.dropna(subset=['year', 'player_name', 'stat_category', 'stat_value'])
+            df['team'] = df['team'].fillna('')
+            
+            # Data validation
+            df = df[df['stat_value'].notna()]
+            df = df[df['player_name'].str.len() > 0]
+            
+            # Convert data types
+            df['year'] = df['year'].astype(int)
+            df['stat_value'] = df['stat_value'].astype(float)
+            
+            # Insert data
+            insert_sql = """
+            INSERT INTO hitting_leaders (year, player_name, team, stat_category, stat_value)
+            VALUES (?, ?, ?, ?, ?)
+            """
+            
+            data_tuples = [
+                (row['year'], row['player_name'], row['team'], row['stat_category'], row['stat_value'])
+                for _, row in df.iterrows()
+            ]
+            
+            self.conn.executemany(insert_sql, data_tuples)
+            self.conn.commit()
+            
+            print(f"Imported {len(df)} hitting leader records")
+            return True
+            
+        except Exception as e:
+            print(f"Error importing hitting leaders: {e}")
+            self.conn.rollback()
+            return False
+    
+    def import_pitching_leaders(self, file_path: str = 'data/raw/yearly_pitching_leaders.csv'):
+        """Import pitching leaders data"""
+        required_cols = ['year', 'player_name', 'stat_category', 'stat_value']
+        
+        if not self.validate_csv_file(file_path, required_cols):
+            return False
+        
+        try:
+            df = pd.read_csv(file_path)
+            
+            # Data cleaning
+            df = df.dropna(subset=['year', 'player_name', 'stat_category', 'stat_value'])
+            df['team'] = df['team'].fillna('')
+            
+            # Data validation
+            df = df[df['stat_value'].notna()]
+            df = df[df['player_name'].str.len() > 0]
+            
+            # Convert data types
+            df['year'] = df['year'].astype(int)
+            df['stat_value'] = df['stat_value'].astype(float)
+            
+            # Insert data
+            insert_sql = """
+            INSERT INTO pitching_leaders (year, player_name, team, stat_category, stat_value)
+            VALUES (?, ?, ?, ?, ?)
+            """
+            
+            data_tuples = [
+                (row['year'], row['player_name'], row['team'], row['stat_category'], row['stat_value'])
+                for _, row in df.iterrows()
+            ]
+            
+            self.conn.executemany(insert_sql, data_tuples)
+            self.conn.commit()
+            
+            print(f"Imported {len(df)} pitching leader records")
+            return True
+            
+        except Exception as e:
+            print(f"Error importing pitching leaders: {e}")
+            self.conn.rollback()
+            return False
+    
+    def import_notable_events(self, file_path: str = 'data/raw/notable_events.csv'):
+        """Import notable events data"""
+        required_cols = ['year', 'description', 'event_type']
+        
+        if not self.validate_csv_file(file_path, required_cols):
+            return False
+        
+        try:
+            df = pd.read_csv(file_path)
+            
+            # Data cleaning
+            df = df.dropna(subset=required_cols)
+            df = df[df['description'].str.len() > 10]  # Minimum description length
+            
+            # Convert data types
+            df['year'] = df['year'].astype(int)
+            
+            # Insert data
+            insert_sql = """
+            INSERT INTO notable_events (year, description, event_type)
+            VALUES (?, ?, ?)
+            """
+            
+            data_tuples = [
+                (row['year'], row['description'], row['event_type'])
+                for _, row in df.iterrows()
+            ]
+            
+            self.conn.executemany(insert_sql, data_tuples)
+            self.conn.commit()
+            
+            print(f"Imported {len(df)} notable event records")
+            return True
+            
+        except Exception as e:
+            print(f"Error importing notable events: {e}")
+            self.conn.rollback()
+            return False
+    
+    def create_indexes(self):
+        """Create indexes for better query performance"""
         indexes = [
-            "CREATE INDEX idx_hitting_year ON hitting_leaders(year)",
-            "CREATE INDEX idx_hitting_player ON hitting_leaders(player_name)",
-            "CREATE INDEX idx_hitting_team ON hitting_leaders(team)",
-            "CREATE INDEX idx_hitting_stat ON hitting_leaders(stat_category)",
-            "CREATE INDEX idx_hitting_quality ON hitting_leaders(quality_score)",
-            
-            "CREATE INDEX idx_pitching_year ON pitching_leaders(year)",
-            "CREATE INDEX idx_pitching_player ON pitching_leaders(player_name)",
-            "CREATE INDEX idx_pitching_team ON pitching_leaders(team)",
-            "CREATE INDEX idx_pitching_stat ON pitching_leaders(stat_category)",
-            
-            "CREATE INDEX idx_standings_year ON team_standings(year)",
-            "CREATE INDEX idx_standings_team ON team_standings(team_name)",
-            
-            "CREATE INDEX idx_quality_table ON data_quality_log(table_name)",
-            "CREATE INDEX idx_quality_severity ON data_quality_log(severity)"
+            "CREATE INDEX IF NOT EXISTS idx_standings_year ON standings(year);",
+            "CREATE INDEX IF NOT EXISTS idx_standings_team ON standings(team_name);",
+            "CREATE INDEX IF NOT EXISTS idx_hitting_year ON hitting_leaders(year);",
+            "CREATE INDEX IF NOT EXISTS idx_hitting_player ON hitting_leaders(player_name);",
+            "CREATE INDEX IF NOT EXISTS idx_hitting_category ON hitting_leaders(stat_category);",
+            "CREATE INDEX IF NOT EXISTS idx_pitching_year ON pitching_leaders(year);",
+            "CREATE INDEX IF NOT EXISTS idx_pitching_player ON pitching_leaders(player_name);",
+            "CREATE INDEX IF NOT EXISTS idx_pitching_category ON pitching_leaders(stat_category);",
+            "CREATE INDEX IF NOT EXISTS idx_events_year ON notable_events(year);",
+            "CREATE INDEX IF NOT EXISTS idx_events_type ON notable_events(event_type);"
         ]
         
         for index_sql in indexes:
-            self.conn.execute(index_sql)
+            try:
+                self.conn.execute(index_sql)
+            except sqlite3.Error as e:
+                print(f"Warning: Could not create index: {e}")
         
         self.conn.commit()
-        self.logger.info("Database schema created successfully")
+        print("Created database indexes")
     
-    def import_hitting_data(self, csv_path: str = "data/processed/yearly_hitting_leaders_cleaned.csv"):
-        """Import hitting leaders data"""
-        
+    def add_foreign_keys(self):
+        """Add foreign key constraints after data is imported"""
         try:
-            self.logger.info(f"Importing hitting data from {csv_path}")
+            # Enable foreign keys
+            self.conn.execute("PRAGMA foreign_keys = ON")
             
-            df = pd.read_csv(csv_path)
+            # Create new tables with foreign keys and copy data
+            alter_sql = [
+                """
+                CREATE TABLE hitting_leaders_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    year INTEGER NOT NULL,
+                    player_name TEXT NOT NULL,
+                    team TEXT,
+                    stat_category TEXT NOT NULL,
+                    stat_value REAL NOT NULL,
+                    FOREIGN KEY (year) REFERENCES standings(year)
+                );
+                """,
+                """
+                INSERT INTO hitting_leaders_new 
+                SELECT * FROM hitting_leaders;
+                """,
+                "DROP TABLE hitting_leaders;",
+                "ALTER TABLE hitting_leaders_new RENAME TO hitting_leaders;",
+                
+                """
+                CREATE TABLE pitching_leaders_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    year INTEGER NOT NULL,
+                    player_name TEXT NOT NULL,
+                    team TEXT,
+                    stat_category TEXT NOT NULL,
+                    stat_value REAL NOT NULL,
+                    FOREIGN KEY (year) REFERENCES standings(year)
+                );
+                """,
+                """
+                INSERT INTO pitching_leaders_new 
+                SELECT * FROM pitching_leaders;
+                """,
+                "DROP TABLE pitching_leaders;",
+                "ALTER TABLE pitching_leaders_new RENAME TO pitching_leaders;",
+                
+                """
+                CREATE TABLE notable_events_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    year INTEGER NOT NULL,
+                    description TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    description_length INTEGER GENERATED ALWAYS AS (LENGTH(description)) STORED,
+                    FOREIGN KEY (year) REFERENCES standings(year)
+                );
+                """,
+                """
+                INSERT INTO notable_events_new 
+                SELECT id, year, description, event_type FROM notable_events;
+                """,
+                "DROP TABLE notable_events;",
+                "ALTER TABLE notable_events_new RENAME TO notable_events;"
+            ]
             
-            # Clean and prepare data
-            df['rank'] = df['rank'].fillna(0)
-            df['team_standardized'] = df['team_standardized'].fillna(False)
-            df['stat_category_corrected'] = df['stat_category_corrected'].fillna(False)
-            df['quality_score'] = df['quality_score'].fillna(100.0)
-            df['quality_level'] = df['quality_level'].fillna('high')
-            
-            # Insert data
-            records_inserted = 0
-            for _, row in df.iterrows():
-                try:
-                    insert_sql = """
-                    INSERT OR REPLACE INTO hitting_leaders 
-                    (year, rank, player_name, team, stat_category, stat_value, 
-                     quality_score, quality_level, team_standardized, stat_category_corrected)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """
-                    
-                    self.conn.execute(insert_sql, (
-                        row['year'],
-                        row['rank'] if pd.notna(row['rank']) else None,
-                        row['player_name'],
-                        row['team'],
-                        row['stat_category'],
-                        row['stat_value'],
-                        row['quality_score'],
-                        row['quality_level'],
-                        bool(row['team_standardized']),
-                        bool(row['stat_category_corrected'])
-                    ))
-                    records_inserted += 1
-                    
-                except sqlite3.Error as e:
-                    self.logger.warning(f"Failed to insert hitting record: {row['player_name']} - {e}")
+            for sql in alter_sql:
+                self.conn.execute(sql)
             
             self.conn.commit()
-            self.logger.info(f"Imported {records_inserted} hitting records")
-            return records_inserted
-            
-        except Exception as e:
-            self.logger.error(f"Error importing hitting data: {e}")
-            return 0
-    
-    def import_pitching_data(self, csv_path: str = "data/processed/yearly_pitching_leaders_cleaned.csv"):
-        """Import pitching leaders data"""
-        
-        try:
-            self.logger.info(f"Importing pitching data from {csv_path}")
-            
-            df = pd.read_csv(csv_path)
-            
-            # Clean and prepare data
-            df['rank'] = df['rank'].fillna(0)
-            df['team_standardized'] = df['team_standardized'].fillna(False)
-            df['stat_category_corrected'] = df['stat_category_corrected'].fillna(False)
-            df['quality_score'] = df['quality_score'].fillna(100.0)
-            df['quality_level'] = df['quality_level'].fillna('high')
-            
-            # Insert data
-            records_inserted = 0
-            for _, row in df.iterrows():
-                try:
-                    insert_sql = """
-                    INSERT OR REPLACE INTO pitching_leaders 
-                    (year, rank, player_name, team, stat_category, stat_value,
-                     quality_score, quality_level, team_standardized, stat_category_corrected)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """
-                    
-                    self.conn.execute(insert_sql, (
-                        row['year'],
-                        row['rank'] if pd.notna(row['rank']) else None,
-                        row['player_name'],
-                        row['team'],
-                        row['stat_category'],
-                        row['stat_value'],
-                        row['quality_score'],
-                        row['quality_level'],
-                        bool(row['team_standardized']),
-                        bool(row['stat_category_corrected'])
-                    ))
-                    records_inserted += 1
-                    
-                except sqlite3.Error as e:
-                    self.logger.warning(f"Failed to insert pitching record: {row['player_name']} - {e}")
-            
-            self.conn.commit()
-            self.logger.info(f"Imported {records_inserted} pitching records")
-            return records_inserted
-            
-        except Exception as e:
-            self.logger.error(f"Error importing pitching data: {e}")
-            return 0
-    
-    def import_standings_data(self, csv_path: str = "data/raw/team_standings.csv"):
-        """Import team standings data"""
-        
-        try:
-            self.logger.info(f"Importing standings data from {csv_path}")
-            
-            df = pd.read_csv(csv_path)
-            
-            # Insert data
-            records_inserted = 0
-            for _, row in df.iterrows():
-                try:
-                    insert_sql = """
-                    INSERT OR REPLACE INTO team_standings 
-                    (year, team_name, wins, losses, win_pct)
-                    VALUES (?, ?, ?, ?, ?)
-                    """
-                    
-                    self.conn.execute(insert_sql, (
-                        row['year'],
-                        row['team_name'],
-                        row['wins'],
-                        row['losses'],
-                        row['win_pct']
-                    ))
-                    records_inserted += 1
-                    
-                except sqlite3.Error as e:
-                    self.logger.warning(f"Failed to insert standings record: {row['team_name']} - {e}")
-            
-            self.conn.commit()
-            self.logger.info(f"Imported {records_inserted} team standings records")
-            return records_inserted
-            
-        except Exception as e:
-            self.logger.error(f"Error importing standings data: {e}")
-            return 0
-    
-    def import_quality_log(self, csv_path: str = "data/processed/quality_report.csv"):
-        """Import data quality audit log"""
-        
-        try:
-            if not os.path.exists(csv_path):
-                self.logger.info("No quality report found, skipping quality log import")
-                return 0
-                
-            self.logger.info(f"Importing quality log from {csv_path}")
-            
-            df = pd.read_csv(csv_path)
-            
-            # Insert data
-            records_inserted = 0
-            for _, row in df.iterrows():
-                try:
-                    # Determine table name from record_id
-                    table_name = "hitting_leaders"  # Default
-                    if "pitching" in str(row.get('description', '')).lower():
-                        table_name = "pitching_leaders"
-                    
-                    insert_sql = """
-                    INSERT INTO data_quality_log 
-                    (record_id, table_name, field_name, issue_type, description, severity, suggested_fix)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """
-                    
-                    self.conn.execute(insert_sql, (
-                        row['record_id'],
-                        table_name,
-                        row['field'],
-                        row['issue_type'],
-                        row['description'],
-                        row['severity'],
-                        row.get('suggested_fix', None)
-                    ))
-                    records_inserted += 1
-                    
-                except sqlite3.Error as e:
-                    self.logger.warning(f"Failed to insert quality log record: {e}")
-            
-            self.conn.commit()
-            self.logger.info(f"Imported {records_inserted} quality log records")
-            return records_inserted
-            
-        except Exception as e:
-            self.logger.error(f"Error importing quality log: {e}")
-            return 0
-    
-    def test_database_queries(self):
-        """Test database with sample queries including joins"""
-        
-        self.logger.info("Testing database with sample queries...")
-        
-        queries = [
-            {
-                "name": "Count records by table",
-                "sql": """
-                SELECT 'hitting_leaders' as table_name, COUNT(*) as record_count
-                FROM hitting_leaders
-                UNION ALL
-                SELECT 'pitching_leaders' as table_name, COUNT(*) as record_count  
-                FROM pitching_leaders
-                UNION ALL
-                SELECT 'team_standings' as table_name, COUNT(*) as record_count
-                FROM team_standings
-                """
-            },
-            {
-                "name": "Top home run hitters by year",
-                "sql": """
-                SELECT year, player_name, team, stat_value as home_runs
-                FROM hitting_leaders 
-                WHERE stat_category = 'Home Runs'
-                ORDER BY year DESC, stat_value DESC
-                LIMIT 10
-                """
-            },
-            {
-                "name": "Yankees players with team standings (JOIN example)",
-                "sql": """
-                SELECT DISTINCT 
-                    h.year,
-                    h.player_name,
-                    h.stat_category,
-                    h.stat_value,
-                    t.wins,
-                    t.losses,
-                    t.win_pct
-                FROM hitting_leaders h
-                JOIN team_standings t ON h.year = t.year 
-                    AND (h.team LIKE '%Yankees%' OR t.team_name LIKE '%Yankees%')
-                WHERE h.team LIKE '%Yankees%'
-                ORDER BY h.year DESC, h.stat_value DESC
-                LIMIT 10
-                """
-            },
-            {
-                "name": "Data quality summary",
-                "sql": """
-                SELECT 
-                    quality_level,
-                    COUNT(*) as record_count,
-                    AVG(quality_score) as avg_quality_score
-                FROM (
-                    SELECT quality_level, quality_score FROM hitting_leaders
-                    UNION ALL
-                    SELECT quality_level, quality_score FROM pitching_leaders
-                ) combined
-                GROUP BY quality_level
-                ORDER BY avg_quality_score DESC
-                """
-            }
-        ]
-        
-        for query in queries:
-            try:
-                print(f"\n{query['name']}:")
-                print("=" * 50)
-                
-                cursor = self.conn.execute(query['sql'])
-                results = cursor.fetchall()
-                columns = [description[0] for description in cursor.description]
-                
-                # Print column headers
-                print(f"{' | '.join(columns)}")
-                print("-" * 50)
-                
-                # Print results (limit to first 5 rows for readability)
-                for row in results[:5]:
-                    formatted_row = []
-                    for item in row:
-                        if isinstance(item, float):
-                            formatted_row.append(f"{item:.3f}")
-                        else:
-                            formatted_row.append(str(item))
-                    print(f"{' | '.join(formatted_row)}")
-                
-                if len(results) > 5:
-                    print(f"... and {len(results) - 5} more rows")
-                    
-            except sqlite3.Error as e:
-                self.logger.error(f"Query failed: {query['name']} - {e}")
-    
-    def get_database_stats(self) -> Dict:
-        """Get comprehensive database statistics"""
-        
-        stats = {}
-        
-        try:
-            # Table record counts
-            tables = ['hitting_leaders', 'pitching_leaders', 'team_standings', 'data_quality_log']
-            for table in tables:
-                cursor = self.conn.execute(f"SELECT COUNT(*) FROM {table}")
-                stats[f"{table}_count"] = cursor.fetchone()[0]
-            
-            # Year range
-            cursor = self.conn.execute("SELECT MIN(year), MAX(year) FROM hitting_leaders")
-            min_year, max_year = cursor.fetchone()
-            stats['year_range'] = f"{min_year}-{max_year}"
-            
-            # Quality distribution
-            cursor = self.conn.execute("""
-                SELECT quality_level, COUNT(*) 
-                FROM hitting_leaders 
-                GROUP BY quality_level
-            """)
-            quality_dist = dict(cursor.fetchall())
-            stats['quality_distribution'] = quality_dist
-            
-            return stats
+            print("Added foreign key constraints")
             
         except sqlite3.Error as e:
-            self.logger.error(f"Error getting database stats: {e}")
-            return {}
+            print(f"Warning: Could not add foreign keys: {e}")
     
-    def close(self):
-        """Close database connection"""
-        if self.conn:
-            self.conn.close()
-            self.logger.info("Database connection closed")
-
-def run_database_import():
-    """Main function to run complete database import process"""
+    def verify_import(self):
+        """Verify data was imported correctly"""
+        print("\n=== DATABASE VERIFICATION ===")
+        
+        # Check record counts
+        tables = ['standings', 'hitting_leaders', 'pitching_leaders', 'notable_events']
+        
+        for table in tables:
+            try:
+                cursor = self.conn.execute(f"SELECT COUNT(*) FROM {table}")
+                count = cursor.fetchone()[0]
+                print(f"{table}: {count} records")
+            except sqlite3.Error as e:
+                print(f"Error checking {table}: {e}")
+        
+        # Check year coverage
+        try:
+            cursor = self.conn.execute("SELECT DISTINCT year FROM standings ORDER BY year")
+            years = [row[0] for row in cursor.fetchall()]
+            print(f"Years covered: {years}")
+        except sqlite3.Error as e:
+            print(f"Error checking years: {e}")
+        
+        # Sample data check - join test
+        try:
+            cursor = self.conn.execute("""
+                SELECT s.year, s.team_name, s.wins, s.losses, 
+                       COUNT(DISTINCT h.id) as hitting_records,
+                       COUNT(DISTINCT p.id) as pitching_records,
+                       COUNT(DISTINCT e.id) as event_records
+                FROM standings s
+                LEFT JOIN hitting_leaders h ON s.year = h.year
+                LEFT JOIN pitching_leaders p ON s.year = p.year
+                LEFT JOIN notable_events e ON s.year = e.year
+                WHERE s.year = 1927
+                GROUP BY s.year, s.team_name, s.wins, s.losses
+                ORDER BY s.wins DESC
+                LIMIT 3
+            """)
+            
+            results = cursor.fetchall()
+            if results:
+                print("\nSample join test (1927 season):")
+                for row in results:
+                    year, team, wins, losses, hitting, pitching, events = row
+                    print(f"  {team}: {wins}-{losses} (H:{hitting}, P:{pitching}, E:{events})")
+            
+        except sqlite3.Error as e:
+            print(f"Error in sample check: {e}")
     
-    print("Baseball Database Import - Step 4")
-    print("=" * 50)
-    
-    importer = BaseballDatabaseImporter()
-    
-    try:
-        # Create schema
-        importer.create_schema()
+    def run_import(self):
+        """Run the complete import process"""
+        print("Starting MLB database import...")
         
-        # Import all data
-        hitting_count = importer.import_hitting_data()
-        pitching_count = importer.import_pitching_data()
-        standings_count = importer.import_standings_data()
-        quality_count = importer.import_quality_log()
-        
-        # Get database statistics
-        stats = importer.get_database_stats()
-        
-        # Print summary
-        print(f"\nDATABASE IMPORT SUMMARY:")
-        print(f"Hitting leaders imported: {hitting_count}")
-        print(f"Pitching leaders imported: {pitching_count}")
-        print(f"Team standings imported: {standings_count}")
-        print(f"Quality log entries: {quality_count}")
-        print(f"Year range: {stats.get('year_range', 'Unknown')}")
-        
-        if stats.get('quality_distribution'):
-            print(f"\nQuality distribution:")
-            for level, count in stats['quality_distribution'].items():
-                print(f"  {level}: {count} records")
-        
-        # Test database with queries
-        print(f"\nTesting database with sample queries:")
-        importer.test_database_queries()
-        
-        print(f"\nDatabase created successfully: {importer.db_path}")
-        print(f"Ready for Step 5: Database Query Tool!")
-        
-        return True
-        
-    except Exception as e:
-        print(f"Database import failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-        
-    finally:
-        importer.close()
+        try:
+            # Connect to database
+            self.connect()
+            
+            # Create tables (without foreign keys initially)
+            self.create_tables()
+            
+            # Import data in order
+            success = True
+            success &= self.import_standings()
+            success &= self.import_hitting_leaders()
+            success &= self.import_pitching_leaders()  
+            success &= self.import_notable_events()
+            
+            if success:
+                # Create indexes
+                self.create_indexes()
+                
+                # Add foreign keys after import
+                self.add_foreign_keys()
+                
+                # Verify import
+                self.verify_import()
+                
+                print("\nDatabase import completed successfully!")
+                print(f"Database location: {os.path.abspath(self.db_path)}")
+            else:
+                print("\nDatabase import completed with errors")
+                
+        except Exception as e:
+            print(f"\nImport failed: {e}")
+        finally:
+            if self.conn:
+                self.conn.close()
 
 if __name__ == "__main__":
-    success = run_database_import()
-    if success:
-        print("\nStep 4 completed successfully!")
-    else:
-        print("\nStep 4 failed - check error messages above")
+    importer = MLBDatabaseImporter()
+    importer.run_import()

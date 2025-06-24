@@ -1,0 +1,121 @@
+year,player_name,team,stat_category,stat_value
+1927,Babe Ruth,New York,Base on Balls,137.0
+1927,Harry Heilmann,Detroit,Batting Average,0.398
+1927,Lou Gehrig,New York,Doubles,52.0
+1927,Earle Combs,New York,Hits,231.0
+1927,Babe Ruth,New York,Home Runs,60.0
+1927,Babe Ruth,New York,On Base Percentage,0.486
+1927,Lou Gehrig,New York,RBI,175.0
+1927,Babe Ruth,New York,Runs,158.0
+1927,Babe Ruth,New York,Slugging Average,0.772
+1927,George Sisler,St. Louis,Stolen Bases,27.0
+1927,Lou Gehrig,New York,Total Bases,447.0
+1927,Earle Combs,New York,Triples,23.0
+1947,Ted Williams,Boston,Base on Balls,162.0
+1947,Ted Williams,Boston,Batting Average,0.343
+1947,Lou Boudreau,Cleveland,Doubles,45.0
+1947,Johnny Pesky,Boston,Hits,207.0
+1947,Ted Williams,Boston,Home Runs,32.0
+1947,Ted Williams,Boston,On Base Percentage,0.499
+1947,Ted Williams,Boston,RBI,114.0
+1947,Ted Williams,Boston,Runs,125.0
+1947,Ted Williams,Boston,Slugging Average,0.634
+1947,Bob Dillinger,St. Louis,Stolen Bases,34.0
+1947,Ted Williams,Boston,Total Bases,335.0
+1947,Tommy Henrich,New York,Triples,13.0
+1961,Mickey Mantle,New York,Base on Balls,126.0
+1961,Norm Cash,Detroit,Batting Average,0.361
+1961,Al Kaline,Detroit,Doubles,41.0
+1961,Norm Cash,Detroit,Hits,193.0
+1961,Roger Maris,New York,Home Runs,61.0
+1961,Norm Cash,Detroit,On Base Percentage,0.488
+1961,Jim Gentile,Baltimore,RBI,141.0
+1961,Roger Maris,New York,Runs,132.0
+1961,Mickey Mantle,New York,Slugging Average,0.687
+1961,Luis Aparacio,Chicago,Stolen Bases,53.0
+1961,Roger Maris,New York,Total Bases,366.0
+1961,Jake Wood,Detroit,Triples,14.0
+1969,Harmon Killebrew,Minnesota,Base on Balls,145.0
+1969,Rod Carew,Minnesota,Batting Average,0.332
+1969,Tony Oliva,Minnesota,Doubles,39.0
+1969,Tony Oliva,Minnesota,Hits,197.0
+1969,Harmon Killebrew,Minnesota,Home Runs,49.0
+1969,Harmon Killebrew,Minnesota,On Base Percentage,0.43
+1969,Harmon Killebrew,Minnesota,RBI,140.0
+1969,Reggie Jackson,Oakland,Runs,123.0
+1969,Reggie Jackson,Oakland,Slugging Average,0.608
+1969,Tommy Harper,Seattle,Stolen Bases,73.0
+1969,Frank Howard,Washington,Total Bases,340.0
+1969,Del Unser,Washington,Triples,8.0
+1994,Frank Thomas,Chicago,Base on Balls,109.0
+1994,Paul O'Neill,New York,Batting Average,0.359
+1994,Chuck Knoblauch,Minnesota,Doubles,45.0
+1994,Kenny Lofton,Cleveland,Hits,160.0
+1994,"Ken Griffey, Jr.",Seattle,Home Runs,40.0
+1994,Frank Thomas,Chicago,On Base Percentage,0.494
+1994,Kirby Puckett,Minnesota,RBI,112.0
+1994,Frank Thomas,Chicago,Runs,106.0
+1994,Frank Thomas,Chicago,Slugging Average,0.729
+1994,Kenny Lofton,Cleveland,Stolen Bases,60.0
+1994,Albert Belle,Cleveland,Total Bases,294.0
+1994,Lance Johnson,Chicago,Triples,14.0
+1998,Rickey Henderson,Oakland,Base on Balls,118.0
+1998,Bernie Williams,New York,Batting Average,0.339
+1998,Juan Gonzalez,Texas,Doubles,50.0
+1998,Alex Rodriguez,Seattle,Hits,213.0
+1998,"Ken Griffey, Jr.",Seattle,Home Runs,56.0
+1998,Edgar Martinez,Seattle,On Base Percentage,0.433
+1998,Juan Gonzalez,Texas,RBI,157.0
+1998,Derek Jeter,New York,Runs,127.0
+1998,Albert Belle,Chicago,Slugging Average,0.655
+1998,Rickey Henderson,Oakland,Stolen Bases,66.0
+1998,Albert Belle,Chicago,Total Bases,399.0
+1998,Jose Offerman,Kansas City,Triples,13.0
+2001,Jason Giambi,Oakland,Base on Balls,129.0
+2001,Ichiro Suzuki,Seattle,Batting Average,0.35
+2001,Jason Giambi,Oakland,Doubles,47.0
+2001,Ichiro Suzuki,Seattle,Hits,242.0
+2001,Alex Rodriguez,Texas,Home Runs,52.0
+2001,Jason Giambi,Oakland,On Base Percentage,0.477
+2001,Bret Boone,Seattle,RBI,141.0
+2001,Alex Rodriguez,Texas,Runs,133.0
+2001,Jason Giambi,Oakland,Slugging Average,0.66
+2001,Ichiro Suzuki,Seattle,Stolen Bases,56.0
+2001,Alex Rodriguez,Texas,Total Bases,393.0
+2001,Cristian Guzman,Minnesota,Triples,14.0
+2016,Mike Trout,Los Angeles,Base on Balls,116.0
+2016,Jose Altuve,Houston,Batting Average,0.338
+2016,David Ortiz,Boston,Doubles,48.0
+2016,Jose Altuve,Houston,Hits,216.0
+2016,Mark Trumbo,Baltimore,Home Runs,47.0
+2016,Mike Trout,Los Angeles,On Base Percentage,0.441
+2016,Edwin Encarnacion,Toronto,RBI,127.0
+2016,Mike Trout,Los Angeles,Runs,123.0
+2016,David Ortiz,Boston,Slugging Average,0.62
+2016,Rajai Davis,Cleveland,Stolen Bases,43.0
+2016,Mookie Betts,Boston,Total Bases,359.0
+2016,Adam Eaton,Chicago,Triples,9.0
+2020,Carlos Santana,Cleveland Indians,Base on Balls,47.0
+2020,DJ LeMahieu,New York Yankees,Batting Average,0.364
+2020,Cesar Hernandez,Cleveland Indians,Doubles,20.0
+2020,Jose Abreu,Chicago White Sox,Hits,76.0
+2020,Luke Voit,New York Yankees,Home Runs,22.0
+2020,DJ LeMahieu,New York Yankees,On Base Percentage,0.421
+2020,Jose Abreu,Chicago White Sox,RBI,60.0
+2020,Tim Anderson,Chicago White Sox,Runs,45.0
+2020,Jose Abreu,Chicago White Sox,Slugging Average,0.617
+2020,Adalberto Mondesi,Kansas City Royals,Stolen Bases,24.0
+2020,Jose Abreu,Chicago White Sox,Total Bases,148.0
+2020,Kyle Tucker,Houston Astros,Triples,6.0
+2023,J.P. Crawford,Seattle Mariners,Base on Balls,94.0
+2023,Yandy Díaz,Tampa Bay Rays,Batting Average,0.33
+2023,Corey Seager,Texas Rangers,Doubles,42.0
+2023,Marcus Semien,Texas Rangers,Hits,185.0
+2023,Shohei Ohtani,Los Angeles Angels,Home Runs,44.0
+2023,Shohei Ohtani,Los Angeles Angels,On Base Percentage,0.412
+2023,Kyle Tucker,Houston Astros,RBI,112.0
+2023,Marcus Semien,Texas Rangers,Runs,122.0
+2023,Shohei Ohtani,Los Angeles Angels,Slugging Average,0.654
+2023,Esteury Ruiz,Oakland Athletics,Stolen Bases,67.0
+2023,Shohei Ohtani,Los Angeles Angels,Total Bases,325.0
+2023,Bobby Witt Jr.,Kansas City Royals,Triples,11.0

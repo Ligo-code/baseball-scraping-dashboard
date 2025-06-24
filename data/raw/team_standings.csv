@@ -1,0 +1,111 @@
+year,team_name,wins,losses,win_pct
+1927,New York Yankees,110,44,0.714
+1927,Philadelphia Athletics,91,63,0.591
+1927,Washington Senators,85,69,0.552
+1927,Detroit Tigers,82,71,0.536
+1927,Chicago White Sox,70,83,0.458
+1927,Cleveland Indians,66,87,0.431
+1927,St. Louis Browns,59,94,0.386
+1927,Boston Red Sox,51,103,0.331
+1947,New York Yankees,97,57,0.63
+1947,Detroit Tigers,85,69,0.552
+1947,Boston Red Sox,83,71,0.539
+1947,Cleveland Indians,80,74,0.519
+1947,Philadelphia Athletics,78,76,0.506
+1947,Chicago White Sox,70,84,0.455
+1947,Washington Senators,64,90,0.416
+1947,St. Louis Browns,59,95,0.383
+1961,New York Yankees,109,53,0.673
+1961,Detroit Tigers,101,61,0.623
+1961,Baltimore Orioles,95,67,0.586
+1961,Chicago White Sox,86,76,0.531
+1961,Cleveland Indians,78,83,0.484
+1961,Boston Red Sox,76,86,0.469
+1961,Minnesota Twins,70,90,0.438
+1961,Los Angeles Angels,70,91,0.435
+1961,Kansas City Athletics,61,100,0.379
+1961,Washington Senators,61,100,0.379
+1969,Baltimore Orioles,109,53,0.673
+1969,Detroit Tigers,90,72,0.556
+1969,Boston Red Sox,87,75,0.537
+1969,Washington Senators,86,76,0.531
+1969,New York Yankees,80,81,0.497
+1969,Cleveland Indians,62,99,0.385
+1969,Minnesota Twins,97,65,0.599
+1969,Oakland Athletics,88,74,0.543
+1969,California Angels,71,91,0.438
+1969,Kansas City Royals,69,93,0.426
+1969,Chicago White Sox,68,94,0.42
+1969,Seattle Pilots,64,98,0.395
+1994,New York Yankees,70,43,0.619
+1994,Baltimore Orioles,63,49,0.562
+1994,Toronto Blue Jays,55,60,0.478
+1994,Boston Red Sox,54,61,0.47
+1994,Detroit Tigers,53,62,0.461
+1994,Chicago White Sox,67,46,0.593
+1994,Cleveland Indians,66,47,0.584
+1994,Kansas City Royals,64,51,0.557
+1994,Minnesota Twins,53,60,0.469
+1994,Milwaukee Brewers,53,62,0.461
+1994,Texas Rangers,52,62,0.456
+1994,Oakland Athletics,51,63,0.447
+1994,Seattle Mariners,49,63,0.438
+1994,California Angels,47,68,0.409
+1998,New York Yankees,114,48,0.704
+1998,Boston Red Sox,92,70,0.568
+1998,Toronto Blue Jays,88,74,0.543
+1998,Baltimore Orioles,79,83,0.488
+1998,Tampa Bay Devil Rays,63,99,0.389
+1998,Cleveland Indians,89,73,0.549
+1998,Chicago White Sox,80,82,0.494
+1998,Kansas City Royals,72,89,0.447
+1998,Minnesota Twins,70,92,0.432
+1998,Detroit Tigers,65,97,0.401
+1998,Texas Rangers,88,74,0.543
+1998,Anaheim Angels,85,77,0.525
+1998,Seattle Mariners,76,85,0.472
+1998,Oakland Athletics,74,88,0.457
+2001,New York Yankees,95,65,0.594
+2001,Boston Red Sox,82,79,0.509
+2001,Toronto Blue Jays,80,82,0.494
+2001,Baltimore Orioles,63,98,0.391
+2001,Tampa Bay Devil Rays,62,100,0.383
+2001,Cleveland Indians,91,71,0.562
+2001,Minnesota Twins,85,77,0.525
+2001,Chicago White Sox,83,79,0.512
+2001,Detroit Tigers,66,96,0.407
+2001,Kansas City Royals,65,97,0.401
+2001,Seattle Mariners,116,46,0.716
+2001,Oakland Athletics,102,60,0.63
+2001,Anaheim Angels,75,87,0.463
+2001,Texas Rangers,73,89,0.451
+2016,Boston Red Sox,93,69,0.574
+2016,Baltimore Orioles,89,73,0.549
+2016,Toronto Blue Jays,89,73,0.549
+2016,New York Yankees,84,78,0.519
+2016,Tampa Bay Rays,68,94,0.42
+2016,Cleveland Indians,94,67,0.584
+2016,Detroit Tigers,86,75,0.534
+2016,Kansas City Royals,81,81,0.5
+2016,Chicago White Sox,78,84,0.481
+2016,Minnesota Twins,59,103,0.364
+2016,Texas Rangers,95,67,0.586
+2016,Seattle Mariners,86,76,0.531
+2016,Houston Astros,84,78,0.519
+2016,Los Angeles Angels,74,88,0.457
+2016,Oakland Athletics,69,93,0.426
+2023,Baltimore Orioles,101,61,0.623
+2023,Tampa Bay Rays,99,63,0.611
+2023,Toronto Blue Jays,89,73,0.549
+2023,New York Yankees,82,80,0.506
+2023,Boston Red Sox,78,84,0.481
+2023,Minnesota Twins,87,75,0.537
+2023,Detroit Tigers,78,84,0.481
+2023,Cleveland Guardians,76,86,0.469
+2023,Chicago White Sox,61,101,0.377
+2023,Kansas City Royals,56,106,0.346
+2023,Houston Astros,90,72,0.556
+2023,Texas Rangers,90,72,0.556
+2023,Seattle Mariners,88,74,0.543
+2023,Los Angeles Angels,73,89,0.451
+2023,Oakland Athletics,50,112,0.309

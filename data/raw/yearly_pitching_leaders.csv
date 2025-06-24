@@ -1,0 +1,81 @@
+year,player_name,team,stat_category,stat_value
+1927,Ted Lyons,Chicago,Complete Games,30.0
+1927,Wilcy Moore,New York,ERA,2.28
+1927,Garland Braxton,Washington,Games,58.0
+1927,Garland Braxton,Washington,Saves,13.0
+1927,Hod Lisenbee,Washington,Shutouts,4.0
+1927,Lefty Grove,Philadelphia,Strikeouts,174.0
+1927,Waite Hoyt,New York,Winning Percentage,0.759
+1927,Waite Hoyt,New York,Wins,22.0
+1947,Hal Newhouser,Detroit,Complete Games,24.0
+1947,Joe Haynes,Chicago,ERA,2.42
+1947,Ed Klieman,Cleveland,Games,58.0
+1947,Ed Klieman,Cleveland,Saves,17.0
+1947,Bob Feller,Cleveland,Shutouts,5.0
+1947,Bob Feller,Cleveland,Strikeouts,196.0
+1947,Allie Reynolds,New York,Winning Percentage,0.704
+1947,Bob Feller,Cleveland,Wins,20.0
+1961,Frank Lary,Detroit,Complete Games,22.0
+1961,Dick Donovan,Washington,ERA,2.4
+1961,Luis Arroyo,New York,Games,65.0
+1961,Luis Arroyo,New York,Saves,29.0
+1961,Steve Barber,Baltimore,Shutouts,8.0
+1961,Camilo Pascual,Minnesota,Strikeouts,221.0
+1961,Whitey Ford,New York,Winning Percentage,0.862
+1961,Whitey Ford,New York,Wins,25.0
+1969,Mel Stottlemyre,New York,Complete Games,24.0
+1969,Dick Bosman,Washington,ERA,2.19
+1969,Wilbur Wood,Chicago,Games,76.0
+1969,Ron Perranoski,Minnesota,Saves,31.0
+1969,Denny McLain,Detroit,Shutouts,9.0
+1969,Sam McDowell,Cleveland,Strikeouts,279.0
+1969,Jim Palmer,Baltimore,Winning Percentage,0.8
+1969,Denny McLain,Detroit,Wins,24.0
+1994,Randy Johnson,Seattle,Complete Games,9.0
+1994,Steve Ontiveros,Oakland,ERA,2.65
+1994,Bob Wickman,New York,Games,53.0
+1994,Lee Smith,Baltimore,Saves,33.0
+1994,Randy Johnson,Seattle,Shutouts,4.0
+1994,Randy Johnson,Seattle,Strikeouts,204.0
+1994,Jason Bere,Chicago,Winning Percentage,0.857
+1994,Jimmy Key,New York,Wins,17.0
+1998,Scott Erickson,Baltimore,Complete Games,11.0
+1998,Roger Clemens,Toronto,ERA,2.65
+1998,Sean Runyan,Detroit,Games,88.0
+1998,Tom Gordon,Boston,Saves,46.0
+1998,David Wells,New York,Shutouts,5.0
+1998,Roger Clemens,Toronto,Strikeouts,271.0
+1998,David Wells,New York,Winning Percentage,0.818
+1998,Roger Clemens,Toronto,Wins,20.0
+2001,Steve Sparks,Detroit,Complete Games,8.0
+2001,Freddy Garcia,Seattle,ERA,3.05
+2001,Paul Quantrill,Toronto,Games,80.0
+2001,Mariano Rivera,New York,Saves,50.0
+2001,Mark Mulder,Oakland,Shutouts,4.0
+2001,Hideo Nomo,Boston,Strikeouts,220.0
+2001,Roger Clemens,New York,Winning Percentage,0.87
+2001,Mark Mulder,Oakland,Wins,21.0
+2016,Chris Sale,Chicago,Complete Games,6.0
+2016,Aaron Sanchez,Toronto,ERA,3.0
+2016,Bryan Shaw,Cleveland,Games,75.0
+2016,Zach Britton,Baltimore,Saves,47.0
+2016,Corey Kluber,Cleveland,Shutouts,2.0
+2016,Justin Verlander,Detroit,Strikeouts,254.0
+2016,Aaron Sanchez,Toronto,Winning Percentage,0.882
+2016,Rick Porcello,Boston,Wins,22.0
+2020,Gerrit Cole,New York Yankees,Complete Games,2.0
+2020,Shane Bieber,Cleveland Indians,ERA,1.63
+2020,Scott Barlow,Kansas City Royals,Games,32.0
+2020,Brad Hand,Cleveland Indians,Saves,16.0
+2020,Gerrit Cole,New York Yankees,Shutouts,1.0
+2020,Shane Bieber,Cleveland Indians,Strikeouts,122.0
+2020,Shane Bieber,Cleveland Indians,Winning Percentage,0.889
+2020,Shane Bieber,Cleveland Indians,Wins,8.0
+2023,Jordan Lyles,Kansas City Royals,Complete Games,3.0
+2023,Gerrit Cole,New York Yankees,ERA,2.63
+2023,Matt Brash,Seattle Mariners,Games,78.0
+2023,Emmanuel Clase,Cleveland Guardians,Saves,44.0
+2023,Gerrit Cole,New York Yankees,Shutouts,2.0
+2023,Kevin Gausman,Toronto Blue Jays,Strikeouts,237.0
+2023,Gerrit Cole,New York Yankees,Winning Percentage,0.789
+2023,Chris Bassitt,Toronto Blue Jays,Wins,16.0
