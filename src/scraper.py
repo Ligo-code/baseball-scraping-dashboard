@@ -5,488 +5,608 @@ import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, WebDriverException
+import random
+import logging
 
-class MLBScraper:
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+class EnhancedMLBScraper:
     def __init__(self):
         self.hitting_data = []
         self.pitching_data = []
         self.events_data = []
         self.standings_data = []
-        self.setup_driver()
+        self.driver = None
+        self.session = requests.Session()
+        self.setup_session()
+        
+        # Scraping statistics
+        self.stats = {
+            'pages_scraped': 0,
+            'successful_requests': 0,
+            'failed_requests': 0,
+            'selenium_fallbacks': 0,
+            'data_points_collected': 0
+        }
+    
+    def setup_session(self):
+        """Setup requests session with headers and retry strategy"""
+        user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        ]
+        
+        self.session.headers.update({
+            'User-Agent': random.choice(user_agents),
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+        })
     
     def setup_driver(self):
-        options = Options()
-        options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-        self.driver = webdriver.Chrome(options=options)
+        """Setup Selenium WebDriver with optimal configuration"""
+        if self.driver:
+            return
+            
+        try:
+            options = Options()
+            options.add_argument("--headless")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--disable-gpu")
+            options.add_argument("--window-size=1920,1080")
+            options.add_argument("--disable-blink-features=AutomationControlled")
+            options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            options.add_experimental_option('useAutomationExtension', False)
+            
+            # Rotate user agents
+            user_agents = [
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebDriver/537.36',
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebDriver/537.36',
+                'Mozilla/5.0 (X11; Linux x86_64) AppleWebDriver/537.36'
+            ]
+            options.add_argument(f"--user-agent={random.choice(user_agents)}")
+            
+            self.driver = webdriver.Chrome(options=options)
+            self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+            logger.info("Selenium WebDriver initialized successfully")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize WebDriver: {e}")
+            self.driver = None
     
-    def scrape_year(self, year):
+    def scrape_with_requests(self, url: str, timeout: int = 10) -> BeautifulSoup:
+        """Try scraping with requests first (faster)"""
+        try:
+            # Rotate user agent
+            user_agents = [
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+            ]
+            self.session.headers['User-Agent'] = random.choice(user_agents)
+            
+            response = self.session.get(url, timeout=timeout)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            self.stats['successful_requests'] += 1
+            return soup
+            
+        except Exception as e:
+            logger.warning(f"Requests failed for {url}: {e}")
+            self.stats['failed_requests'] += 1
+            return None
+    
+    def scrape_with_selenium(self, url: str, timeout: int = 15) -> BeautifulSoup:
+        """Fallback to Selenium for dynamic content"""
+        try:
+            if not self.driver:
+                self.setup_driver()
+            
+            if not self.driver:
+                logger.error("WebDriver not available")
+                return None
+            
+            self.driver.get(url)
+            
+            # Wait for page to load
+            WebDriverWait(self.driver, timeout).until(
+                EC.presence_of_element_located((By.TAG_NAME, "body"))
+            )
+            
+            # Additional wait for dynamic content
+            time.sleep(2)
+            
+            soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+            self.stats['selenium_fallbacks'] += 1
+            return soup
+            
+        except (TimeoutException, WebDriverException) as e:
+            logger.error(f"Selenium failed for {url}: {e}")
+            return None
+    
+    def scrape_page(self, url: str) -> BeautifulSoup:
+        """Main scraping method with fallback strategy"""
+        logger.info(f"Scraping: {url}")
+        
+        # Try requests first
+        soup = self.scrape_with_requests(url)
+        
+        # Fallback to Selenium if requests fails
+        if soup is None:
+            logger.info("Falling back to Selenium...")
+            soup = self.scrape_with_selenium(url)
+        
+        if soup:
+            self.stats['pages_scraped'] += 1
+        
+        # Add delay between requests
+        time.sleep(random.uniform(1, 3))
+        
+        return soup
+    
+    def scrape_year(self, year: int):
+        """Scrape all data for a specific year with enhanced error handling"""
         url = f"https://www.baseball-almanac.com/yearly/yr{year}a.shtml"
-        print(f"Scraping {year}...")
+        logger.info(f"Starting scrape for year {year}")
+        
+        soup = self.scrape_page(url)
+        
+        if not soup:
+            logger.error(f"Failed to scrape {year} - no content retrieved")
+            return False
         
         try:
-            # Try requests first
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-            response = requests.get(url, headers=headers, timeout=10)
+            # Extract different types of data
+            events_found = self.extract_events(soup, year)
+            tables_found = self.parse_all_tables(soup, year)
             
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.content, 'html.parser')
-            else:
-                # Fallback to Selenium
-                print(f"  Using Selenium for {year}")
-                self.driver.get(url)
-                time.sleep(3)
-                soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-        
-        except:
-            # Fallback to Selenium
-            print(f"  Using Selenium for {year}")
-            self.driver.get(url)
-            time.sleep(3)
-            soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-        
-        # Extract events from paragraphs and text
-        self.extract_events(soup, year)
-        
-        # Parse tables by their specific headers
-        self.parse_targeted_tables(soup, year)
-        
-        time.sleep(2)
+            logger.info(f"Year {year} completed: {events_found} events, {tables_found} tables processed")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error processing {year}: {e}")
+            return False
     
-    def extract_events(self, soup, year):
-        """Extract notable events from main content only"""
+    def extract_events(self, soup: BeautifulSoup, year: int) -> int:
+        """Enhanced event extraction with better filtering"""
         events_found = 0
-        processed_texts = set()  # To avoid duplicates
+        processed_texts = set()
         
-        # Look for main content areas first
-        main_content = soup.find('div', {'class': ['content', 'main', 'article']}) or soup
+        # Look for main content areas
+        content_selectors = [
+            'div.content', 'div.main', 'div.article',
+            'div#content', 'div#main', 'div.post'
+        ]
         
-        # Find paragraphs in the main content area
+        main_content = None
+        for selector in content_selectors:
+            main_content = soup.select_one(selector)
+            if main_content:
+                break
+        
+        if not main_content:
+            main_content = soup
+        
+        # Extract from paragraphs
         paragraphs = main_content.find_all('p')
         
         for p in paragraphs:
             text = p.get_text(strip=True)
             
-            # Skip if too short or already processed
-            if len(text) < 30 or text in processed_texts:
+            if not self.is_valid_event_text(text, processed_texts):
                 continue
             
-            # Skip navigation and site elements
-            if self.is_navigation_text(text):
-                continue
+            # Clean and classify the event
+            cleaned_text = self.clean_event_text(text)
+            event_type = self.classify_event_enhanced(cleaned_text)
             
-            # Skip copyright and footer text
-            if any(skip_word in text.lower() for skip_word in [
-                'copyright', '1999-', 'baseball almanac', 'hosting 4 less',
-                'all rights reserved', 'find us on facebook', 'follow @',
-                'stats awards fabulous', 'where what happened yesterday'
-            ]):
-                continue
-            
-            # Skip table headers and navigation elements
-            if any(skip_phrase in text.lower() for skip_phrase in [
-                'hitting statistics league leaderboard',
-                'pitching statistics league leaderboard', 
-                'american league player review',
-                'american league pitcher review',
-                'team standings',
-                'all-star game',
-                'top 25'
-            ]):
-                continue
-            
-            # Only keep baseball-related content
-            if self.is_baseball_event(text):
-                # Clean the text
-                cleaned_text = self.clean_event_text(text)
-                
-                if cleaned_text and cleaned_text not in processed_texts:
-                    self.events_data.append({
-                        'year': year,
-                        'description': cleaned_text,
-                        'event_type': self.classify_event(cleaned_text)
-                    })
-                    processed_texts.add(cleaned_text)
-                    events_found += 1
+            if cleaned_text and len(cleaned_text) > 50:  # Minimum length for meaningful events
+                self.events_data.append({
+                    'year': year,
+                    'description': cleaned_text,
+                    'event_type': event_type
+                })
+                processed_texts.add(cleaned_text)
+                events_found += 1
+                self.stats['data_points_collected'] += 1
         
-        print(f"    Found {events_found} valid events for {year}")
+        return events_found
     
-    def is_navigation_text(self, text):
-        """Check if text is from navigation/menu elements"""
-        # Navigation indicators
-        nav_indicators = [
-            'baseball almanachistory',
-            'playersbaseball families',
-            'leadersattendance data',
-            'left field1,500',
-            'statsawardsfabulous',
-            'peopleautographsballplayers'
+    def is_valid_event_text(self, text: str, processed_texts: set) -> bool:
+        """Enhanced validation for event text"""
+        if not text or len(text) < 30:
+            return False
+        
+        if text in processed_texts:
+            return False
+        
+        # Skip navigation and non-content
+        skip_patterns = [
+            r'baseball almanac',
+            r'copyright',
+            r'all rights reserved',
+            r'find us on',
+            r'follow @',
+            r'stats awards',
+            r'hosting 4 less',
+            r'where what happened',
+            r'player review',
+            r'pitcher review',
+            r'team standings',
+            r'top 25',
+            r'ballplayers autographs',
+            r'left field1,500'
         ]
         
-        # Check for navigation patterns
-        text_lower = text.lower().replace(' ', '')
-        for indicator in nav_indicators:
-            if indicator in text_lower:
-                return True
-        
-        # Check for menu-like structure (lots of capitals without spaces)
-        if len([c for c in text if c.isupper()]) > len(text) * 0.3:
-            return True
-            
-        return False
-    
-    def is_baseball_event(self, text):
-        """Check if text describes a real baseball event"""
         text_lower = text.lower()
+        for pattern in skip_patterns:
+            if pattern in text_lower:
+                return False
         
-        # Must contain baseball-related keywords
-        baseball_keywords = [
-            'baseball', 'game', 'season', 'player', 'pitcher', 'hitter',
+        # Must contain baseball-related content
+        baseball_indicators = [
+            'game', 'season', 'player', 'pitcher', 'hitter', 'baseball',
             'home run', 'strikeout', 'hit', 'world series', 'record',
-            'debut', 'retire', 'no-hitter', 'perfect game', 'yankees',
-            'red sox', 'tigers', 'athletics', 'orioles', 'league',
-            'american league', 'national league', 'major league'
+            'debut', 'retire', 'no-hitter', 'yankees', 'red sox',
+            'league', 'major league', 'american league', 'national league'
         ]
         
-        if not any(keyword in text_lower for keyword in baseball_keywords):
+        if not any(indicator in text_lower for indicator in baseball_indicators):
             return False
         
-        # Should NOT contain non-baseball content
-        non_baseball = [
-            'earthquake', 'president', 'politics', 'war', 'lindbergh',
-            'aviator', 'murder', 'execution', 'anarchist', 'italy',
-            'space shuttle', 'olympic', 'european union'
+        # Filter out non-baseball historical events
+        non_baseball_terms = [
+            'earthquake', 'president', 'politics', 'war', 'murder',
+            'execution', 'european union', 'space shuttle', 'olympic'
         ]
         
-        if any(word in text_lower for word in non_baseball):
+        if any(term in text_lower for term in non_baseball_terms):
             return False
         
-        # Should contain proper sentence structure
-        if not any(char in text for char in '.!?'):
-            return False
-            
         return True
     
-    def clean_event_text(self, text):
-        """Clean and format event text"""
-        # Remove extra whitespace
-        text = ' '.join(text.split())
-        
-        # Limit length
-        if len(text) > 400:
-            text = text[:400] + '...'
-        
-        # Remove quotes artifacts
-        text = text.replace('""', '"')
-        
-        return text.strip()
-    
-    def classify_event(self, text):
-        """Classify event type based on keywords with better accuracy"""
+    def classify_event_enhanced(self, text: str) -> str:
+        """Enhanced event classification with more specific categories"""
         text_lower = text.lower()
         
-        # World Series (highest priority)
-        if any(phrase in text_lower for phrase in ['world series', 'series winner', 'championship series']):
-            return 'World Series'
+        # Priority-based classification (most specific first)
+        classifications = [
+            ('World Series', ['world series', 'championship series', 'swept', 'game 7']),
+            ('No-Hitter', ['no-hitter', 'no-hit', 'perfect game', 'no hitter']),
+            ('Record', ['record', 'first player to', 'first time', 'most', 'fastest', 'longest', 'broke the record', 'set a new', 'all-time']),
+            ('Debut', ['debut', 'first game', 'first appearance', 'rookie', 'first african-american', 'first black player', 'expansion']),
+            ('Retirement', ['retire', 'retirement', 'final game', 'last season', 'announced retirement', 'career ended']),
+            ('Death', ['death', 'died', 'passed away']),
+            ('Award', ['mvp', 'most valuable player', 'cy young', 'rookie of the year', 'hall of fame', 'award']),
+            ('Transaction', ['trade', 'traded', 'acquired', 'signed', 'contract']),
+            ('Rule Change', ['rule', 'designated hitter', 'mound', 'strike zone', 'expansion', 'playoff format']),
+            ('Milestone', ['3000', '500', '400', 'milestone', 'career', 'thousandth'])
+        ]
         
-        # No-hitters and perfect games
-        elif any(phrase in text_lower for phrase in ['no-hitter', 'no-hit', 'perfect game', 'no hitter']):
-            return 'No-Hitter'
+        for event_type, keywords in classifications:
+            if any(keyword in text_lower for keyword in keywords):
+                return event_type
         
-        # Records (various types)
-        elif any(phrase in text_lower for phrase in [
-            'set a record', 'broke the record', 'new record', 'record for',
-            'all-time record', 'major league record', 'first player',
-            'first time', 'most', 'fastest', 'longest'
-        ]):
-            return 'Record'
-        
-        # Player debuts and firsts
-        elif any(phrase in text_lower for phrase in [
-            'debut', 'first game', 'first appearance', 'rookie',
-            'first african-american', 'first black player', 'expansion'
-        ]):
-            return 'Debut'
-        
-        # Retirements and career endings
-        elif any(phrase in text_lower for phrase in [
-            'retire', 'retirement', 'final game', 'last season',
-            'announced his retirement', 'career ended'
-        ]):
-            return 'Retirement'
-        
-        # Deaths and obituaries
-        elif any(phrase in text_lower for phrase in ['death', 'died', 'passed away']):
-            return 'Death'
-        
-        # Awards and honors
-        elif any(phrase in text_lower for phrase in [
-            'mvp', 'most valuable player', 'cy young', 'rookie of the year',
-            'hall of fame', 'award', 'honor'
-        ]):
-            return 'Award'
-        
-        # Trades and transactions
-        elif any(phrase in text_lower for phrase in ['trade', 'traded', 'acquired', 'signed']):
-            return 'Transaction'
-        
-        # Otherwise, general notable event
-        else:
-            return 'Notable Event'
+        return 'Notable Event'
     
-    def parse_targeted_tables(self, soup, year):
-        """Parse tables based on their headers and context"""
-        
-        # Look for table containers and headers
+    def parse_all_tables(self, soup: BeautifulSoup, year: int) -> int:
+        """Parse all relevant tables with better identification"""
+        tables_processed = 0
         tables = soup.find_all('table')
         
         for table in tables:
-            # Try to find the table header/title by looking at surrounding elements
-            table_context = self.get_table_context(table)
+            table_type = self.identify_table_type(table, year)
             
-            if 'player review' in table_context.lower() and 'pitcher' not in table_context.lower():
-                print(f"  Found hitting table for {year}")
-                self.parse_hitting_table(table, year)
-            
-            elif 'pitcher review' in table_context.lower():
-                print(f"  Found pitching table for {year}")
-                self.parse_pitching_table(table, year)
-            
-            elif 'team standings' in table_context.lower():
-                print(f"  Found standings table for {year}")
-                self.parse_standings_table(table, year)
+            if table_type == 'hitting':
+                if self.parse_statistical_table(table, year, 'hitting'):
+                    tables_processed += 1
+            elif table_type == 'pitching':
+                if self.parse_statistical_table(table, year, 'pitching'):
+                    tables_processed += 1
+            elif table_type == 'standings':
+                if self.parse_standings_table(table, year):
+                    tables_processed += 1
+        
+        return tables_processed
     
-    def get_table_context(self, table):
-        """Get context around table to understand what it contains"""
+    def identify_table_type(self, table, year: int) -> str:
+        """Better table type identification"""
+        # Get context around the table
         context = ""
         
-        # Look at previous siblings for headers
+        # Check previous siblings for headers
         prev_element = table.find_previous_sibling()
         if prev_element:
-            context += prev_element.get_text()
+            context += prev_element.get_text().lower()
         
-        # Look at parent elements
+        # Check parent for headers
         parent = table.parent
         if parent:
-            # Look for header text in parent
             headers = parent.find_all(['h1', 'h2', 'h3', 'h4'])
             for header in headers:
-                context += " " + header.get_text()
+                context += " " + header.get_text().lower()
         
-        # Look at the table itself for clues
+        # Check table headers
         first_row = table.find('tr')
         if first_row:
-            context += " " + first_row.get_text()
+            context += " " + first_row.get_text().lower()
         
-        return context
+        # Classify based on context
+        if any(keyword in context for keyword in ['player review', 'hitting', 'batting']) and 'pitcher' not in context:
+            return 'hitting'
+        elif any(keyword in context for keyword in ['pitcher review', 'pitching']):
+            return 'pitching'
+        elif any(keyword in context for keyword in ['standings', 'team', 'wins', 'losses']):
+            return 'standings'
+        
+        return 'unknown'
     
-    def parse_hitting_table(self, table, year):
-        """Parse individual player hitting statistics"""
-        rows = table.find_all('tr')
-        
-        # Skip if too few rows
-        if len(rows) < 2:
-            return
-        
-        # Find header row to understand column structure
-        headers = []
-        header_row = rows[0]
-        header_cells = header_row.find_all(['th', 'td'])
-        headers = [cell.get_text(strip=True).lower() for cell in header_cells]
-        
-        print(f"    Hitting table headers: {headers}")
-        
-        # Parse data rows
-        for row in rows[1:]:
-            cells = row.find_all(['td', 'th'])
-            if len(cells) < 4:  # Need at least: Statistic, Name, Team, Value
-                continue
+    def parse_statistical_table(self, table, year: int, table_type: str) -> bool:
+        """Parse hitting or pitching statistics tables"""
+        try:
+            rows = table.find_all('tr')
+            if len(rows) < 2:
+                return False
             
-            values = [cell.get_text(strip=True) for cell in cells]
-            
-            # Expected format: [Statistic, Name(s), Team(s), Value, ...]
-            if len(values) >= 4:
-                stat_category = values[0]
-                player_name = values[1]
-                team = values[2] if values[2] else ""
-                
-                try:
-                    stat_value = float(values[3])
-                    
-                    # Only add if it looks like a valid player name
-                    if self.is_valid_player_name(player_name):
-                        self.hitting_data.append({
-                            'year': year,
-                            'player_name': player_name,
-                            'team': team,
-                            'stat_category': stat_category,
-                            'stat_value': stat_value
-                        })
-                        print(f"      Added: {player_name} - {stat_category}: {stat_value}")
-                
-                except (ValueError, IndexError):
+            # Parse data rows (skip header)
+            records_added = 0
+            for row in rows[1:]:
+                cells = row.find_all(['td', 'th'])
+                if len(cells) < 4:
                     continue
-    
-    def parse_pitching_table(self, table, year):
-        """Parse individual pitcher statistics"""
-        rows = table.find_all('tr')
-        
-        if len(rows) < 2:
-            return
-        
-        # Find header row
-        headers = []
-        header_row = rows[0]
-        header_cells = header_row.find_all(['th', 'td'])
-        headers = [cell.get_text(strip=True).lower() for cell in headers]
-        
-        print(f"    Pitching table headers: {headers}")
-        
-        # Parse data rows
-        for row in rows[1:]:
-            cells = row.find_all(['td', 'th'])
-            if len(cells) < 4:
-                continue
-            
-            values = [cell.get_text(strip=True) for cell in cells]
-            
-            if len(values) >= 4:
-                stat_category = values[0]
-                player_name = values[1]
-                team = values[2] if values[2] else ""
                 
-                try:
-                    stat_value = float(values[3])
+                values = [cell.get_text(strip=True) for cell in cells]
+                
+                # Expected format: [Statistic, Player, Team, Value, ...]
+                if len(values) >= 4:
+                    stat_category = values[0]
+                    player_name = values[1]
+                    team = values[2]
                     
-                    if self.is_valid_player_name(player_name):
-                        self.pitching_data.append({
-                            'year': year,
-                            'player_name': player_name,
-                            'team': team,
-                            'stat_category': stat_category,
-                            'stat_value': stat_value
-                        })
-                        print(f"      Added: {player_name} - {stat_category}: {stat_value}")
-                
-                except (ValueError, IndexError):
-                    continue
-    
-    def parse_standings_table(self, table, year):
-        """Parse team standings"""
-        rows = table.find_all('tr')
-        
-        if len(rows) < 2:
-            return
-        
-        print(f"    Parsing standings table with {len(rows)} rows")
-        
-        # Parse data rows (skip header)
-        for row in rows[1:]:
-            cells = row.find_all(['td', 'th'])
-            if len(cells) < 4:
-                continue
-            
-            values = [cell.get_text(strip=True) for cell in cells]
-            
-            # Expected format: [Team, W, L, WP, GB]
-            if len(values) >= 4:
-                team_name = values[0]
-                
-                try:
-                    wins = int(values[1])
-                    losses = int(values[2])
-                    
-                    # Only add if reasonable season totals
-                    if 40 <= wins <= 130 and 40 <= losses <= 130:
-                        win_pct = wins / (wins + losses)
+                    try:
+                        stat_value = float(values[3])
                         
-                        self.standings_data.append({
-                            'year': year,
-                            'team_name': team_name,
-                            'wins': wins,
-                            'losses': losses,
-                            'win_pct': round(win_pct, 3)
-                        })
-                        print(f"      Added: {team_name} {wins}-{losses}")
-                
-                except (ValueError, IndexError):
-                    continue
+                        if self.is_valid_player_record(player_name, stat_category, stat_value):
+                            data_dict = {
+                                'year': year,
+                                'player_name': player_name,
+                                'team': team,
+                                'stat_category': stat_category,
+                                'stat_value': stat_value
+                            }
+                            
+                            if table_type == 'hitting':
+                                self.hitting_data.append(data_dict)
+                            else:
+                                self.pitching_data.append(data_dict)
+                            
+                            records_added += 1
+                            self.stats['data_points_collected'] += 1
+                    
+                    except (ValueError, IndexError):
+                        continue
+            
+            logger.info(f"  Added {records_added} {table_type} records for {year}")
+            return records_added > 0
+            
+        except Exception as e:
+            logger.error(f"Error parsing {table_type} table for {year}: {e}")
+            return False
     
-    def is_valid_player_name(self, name):
-        """Check if text looks like a valid player name"""
+    def is_valid_player_record(self, name: str, category: str, value: float) -> bool:
+        """Validate player records with reasonable ranges"""
         if not name or len(name) < 3:
             return False
         
-        # Skip if it's clearly not a name
-        skip_terms = ['statistic', 'name', 'team', 'league', 'total', 'average']
+        # Skip obvious non-names
+        skip_terms = ['statistic', 'name', 'team', 'league', 'total', 'average', 'leader']
         if any(term in name.lower() for term in skip_terms):
             return False
         
-        # Should look like "First Last" or "First Middle Last"
-        words = name.split()
-        if len(words) < 2:
-            return False
+        # Validate statistical ranges
+        ranges = {
+            'Home Runs': (0, 100),
+            'Batting Average': (0.100, 0.500),
+            'RBI': (0, 200),
+            'ERA': (0.00, 10.00),
+            'Wins': (0, 35),
+            'Strikeouts': (0, 400),
+            'Saves': (0, 70)
+        }
         
-        # Each word should start with capital letter
-        return all(word[0].isupper() for word in words if word)
+        if category in ranges:
+            min_val, max_val = ranges[category]
+            if not (min_val <= value <= max_val):
+                return False
+        
+        return True
+    
+    def parse_standings_table(self, table, year: int) -> bool:
+        """Parse team standings with validation"""
+        try:
+            rows = table.find_all('tr')
+            if len(rows) < 2:
+                return False
+            
+            records_added = 0
+            for row in rows[1:]:
+                cells = row.find_all(['td', 'th'])
+                if len(cells) < 4:
+                    continue
+                
+                values = [cell.get_text(strip=True) for cell in cells]
+                
+                if len(values) >= 4:
+                    team_name = values[0]
+                    
+                    try:
+                        wins = int(values[1])
+                        losses = int(values[2])
+                        
+                        # Validate reasonable season totals
+                        total_games = wins + losses
+                        expected_games = 154 if year <= 1960 else (60 if year == 2020 else 162)
+                        
+                        if abs(total_games - expected_games) <= 12:  # Allow some variance
+                            win_pct = wins / total_games
+                            
+                            self.standings_data.append({
+                                'year': year,
+                                'team_name': team_name,
+                                'wins': wins,
+                                'losses': losses,
+                                'win_pct': round(win_pct, 3)
+                            })
+                            
+                            records_added += 1
+                            self.stats['data_points_collected'] += 1
+                    
+                    except (ValueError, IndexError):
+                        continue
+            
+            logger.info(f"  Added {records_added} standings records for {year}")
+            return records_added > 0
+            
+        except Exception as e:
+            logger.error(f"Error parsing standings for {year}: {e}")
+            return False
+    
+    def clean_event_text(self, text: str) -> str:
+        """Clean event text more thoroughly"""
+        # Remove extra whitespace
+        text = ' '.join(text.split())
+        
+        # Remove common artifacts
+        text = text.replace('""', '"').replace('"', '"').replace('"', '"')
+        
+        # Limit length but preserve complete sentences
+        if len(text) > 400:
+            # Try to end at a sentence boundary
+            sentences = text[:400].split('.')
+            if len(sentences) > 1:
+                text = '.'.join(sentences[:-1]) + '.'
+            else:
+                text = text[:400] + '...'
+        
+        return text.strip()
     
     def save_data(self):
+        """Save data with enhanced error handling and validation"""
         os.makedirs('data/raw', exist_ok=True)
         
-        # Save hitting data
-        if self.hitting_data:
-            hitting_df = pd.DataFrame(self.hitting_data)
-            hitting_df.to_csv('data/raw/yearly_hitting_leaders.csv', index=False)
-            print(f"Saved {len(self.hitting_data)} hitting records")
-        else:
-            pd.DataFrame(columns=['year', 'player_name', 'team', 'stat_category', 'stat_value']).to_csv(
-                'data/raw/yearly_hitting_leaders.csv', index=False)
-            print("Created empty hitting file")
+        # Save with backup
+        datasets = [
+            ('yearly_hitting_leaders.csv', self.hitting_data, 
+             ['year', 'player_name', 'team', 'stat_category', 'stat_value']),
+            ('yearly_pitching_leaders.csv', self.pitching_data,
+             ['year', 'player_name', 'team', 'stat_category', 'stat_value']),
+            ('team_standings.csv', self.standings_data,
+             ['year', 'team_name', 'wins', 'losses', 'win_pct']),
+            ('notable_events.csv', self.events_data,
+             ['year', 'description', 'event_type'])
+        ]
         
-        # Save pitching data
-        if self.pitching_data:
-            pitching_df = pd.DataFrame(self.pitching_data)
-            pitching_df.to_csv('data/raw/yearly_pitching_leaders.csv', index=False)
-            print(f"Saved {len(self.pitching_data)} pitching records")
-        else:
-            pd.DataFrame(columns=['year', 'player_name', 'team', 'stat_category', 'stat_value']).to_csv(
-                'data/raw/yearly_pitching_leaders.csv', index=False)
-            print("Created empty pitching file")
-        
-        # Save standings
-        if self.standings_data:
-            standings_df = pd.DataFrame(self.standings_data)
-            standings_df.to_csv('data/raw/team_standings.csv', index=False)
-            print(f"Saved {len(self.standings_data)} standings records")
-        else:
-            pd.DataFrame(columns=['year', 'team_name', 'wins', 'losses', 'win_pct']).to_csv(
-                'data/raw/team_standings.csv', index=False)
-            print("Created empty standings file")
-        
-        # Save events
-        if self.events_data:
-            events_df = pd.DataFrame(self.events_data)
-            events_df.to_csv('data/raw/notable_events.csv', index=False)
-            print(f"Saved {len(self.events_data)} event records")
-        else:
-            pd.DataFrame(columns=['year', 'description', 'event_type']).to_csv(
-                'data/raw/notable_events.csv', index=False)
-            print("Created empty events file")
+        for filename, data, columns in datasets:
+            filepath = f'data/raw/{filename}'
+            
+            if data:
+                df = pd.DataFrame(data)
+                df.to_csv(filepath, index=False)
+                logger.info(f"Saved {len(data)} records to {filename}")
+            else:
+                # Create empty file with headers
+                pd.DataFrame(columns=columns).to_csv(filepath, index=False)
+                logger.warning(f"Created empty {filename}")
     
-    def run(self, years):
-        print("Starting improved MLB scraper...")
+    def print_final_stats(self):
+        """Print comprehensive scraping statistics"""
+        logger.info("\n" + "="*60)
+        logger.info("SCRAPING COMPLETED - FINAL STATISTICS")
+        logger.info("="*60)
+        logger.info(f"Pages scraped: {self.stats['pages_scraped']}")
+        logger.info(f"Successful requests: {self.stats['successful_requests']}")
+        logger.info(f"Failed requests: {self.stats['failed_requests']}")
+        logger.info(f"Selenium fallbacks: {self.stats['selenium_fallbacks']}")
+        logger.info(f"Total data points: {self.stats['data_points_collected']}")
+        logger.info("")
+        logger.info(f"Hitting records: {len(self.hitting_data)}")
+        logger.info(f"Pitching records: {len(self.pitching_data)}")
+        logger.info(f"Standings records: {len(self.standings_data)}")
+        logger.info(f"Event records: {len(self.events_data)}")
+        logger.info("="*60)
+    
+    def run(self, years: list):
+        """Main execution method with comprehensive error handling"""
+        logger.info("Starting Enhanced MLB Historical Data Scraper")
+        logger.info(f"Target years: {years}")
         
-        for year in years:
-            self.scrape_year(year)
+        successful_years = []
+        failed_years = []
         
-        self.save_data()
-        self.driver.quit()
-        print("Scraping completed!")
+        try:
+            for year in years:
+                logger.info(f"\n--- Processing Year {year} ---")
+                
+                success = self.scrape_year(year)
+                
+                if success:
+                    successful_years.append(year)
+                    logger.info(f"✓ Year {year} completed successfully")
+                else:
+                    failed_years.append(year)
+                    logger.error(f"✗ Year {year} failed")
+                
+                # Progress update
+                logger.info(f"Progress: {len(successful_years + failed_years)}/{len(years)} years processed")
+            
+            # Save all collected data
+            self.save_data()
+            
+            # Print final statistics
+            self.print_final_stats()
+            
+            if failed_years:
+                logger.warning(f"Failed years: {failed_years}")
+            
+            logger.info("Scraping process completed!")
+            
+        except KeyboardInterrupt:
+            logger.info("Scraping interrupted by user")
+            self.save_data()
+        
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            self.save_data()
+        
+        finally:
+            if self.driver:
+                self.driver.quit()
+                logger.info("WebDriver closed")
 
 if __name__ == "__main__":
-    # Significant years in MLB history
-    years = [1927, 1947, 1961, 1969, 1994, 1998, 2001, 2016, 2020, 2023]
+    # Significant years in MLB history with clear rationale
+    target_years = [
+        1927,  # Murderers' Row Yankees, Babe Ruth 60 HRs
+        1947,  # Jackie Robinson breaks color barrier
+        1961,  # Maris breaks Ruth's record, AL expansion
+        1969,  # End of "Year of the Pitcher", divisional play begins
+        1994,  # Strike-shortened season, beginning of offensive explosion
+        1998,  # McGwire/Sosa home run chase
+        2001,  # Bonds' 73 HRs, post-9/11 season
+        2016,  # Cubs break 108-year drought, analytics era
+        2020,  # COVID-shortened season
+        2023   # Modern rule changes (pitch clock, shift restrictions)
+    ]
     
-    scraper = MLBScraper()
-    scraper.run(years)
+    scraper = EnhancedMLBScraper()
+    scraper.run(target_years)

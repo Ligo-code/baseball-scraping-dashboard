@@ -1,0 +1,117 @@
+year,player_name,team,stat_category,stat_value
+1927,Babe Ruth,New York Yankees,Base on Balls,137.0
+1927,Harry Heilmann,Detroit Tigers,Batting Average,0.398
+1927,Lou Gehrig,New York Yankees,Doubles,52.0
+1927,Earle Combs,New York Yankees,Hits,231.0
+1927,Babe Ruth,New York Yankees,Home Runs,60.0
+1927,Babe Ruth,New York Yankees,On Base Percentage,0.486
+1927,Lou Gehrig,New York Yankees,RBI,175.0
+1927,Babe Ruth,New York Yankees,Runs,158.0
+1927,Babe Ruth,New York Yankees,Slugging Average,0.772
+1927,George Sisler,St. Louis Browns,Stolen Bases,27.0
+1927,Lou Gehrig,New York Yankees,Total Bases,447.0
+1927,Earle Combs,New York Yankees,Triples,23.0
+1947,Ted Williams,Boston Red Sox,Base on Balls,162.0
+1947,Ted Williams,Boston Red Sox,Batting Average,0.343
+1947,Lou Boudreau,Cleveland Indians,Doubles,45.0
+1947,Johnny Pesky,Boston Red Sox,Hits,207.0
+1947,Ted Williams,Boston Red Sox,Home Runs,32.0
+1947,Ted Williams,Boston Red Sox,On Base Percentage,0.499
+1947,Ted Williams,Boston Red Sox,RBI,114.0
+1947,Ted Williams,Boston Red Sox,Runs,125.0
+1947,Ted Williams,Boston Red Sox,Slugging Average,0.634
+1947,Bob Dillinger,St. Louis Browns,Stolen Bases,34.0
+1947,Ted Williams,Boston Red Sox,Total Bases,335.0
+1947,Tommy Henrich,New York Yankees,Triples,13.0
+1961,Mickey Mantle,New York Yankees,Base on Balls,126.0
+1961,Norm Cash,Detroit Tigers,Batting Average,0.361
+1961,Al Kaline,Detroit Tigers,Doubles,41.0
+1961,Norm Cash,Detroit Tigers,Hits,193.0
+1961,Roger Maris,New York Yankees,Home Runs,61.0
+1961,Norm Cash,Detroit Tigers,On Base Percentage,0.488
+1961,Jim Gentile,Baltimore Orioles,RBI,141.0
+1961,Roger Maris,New York Yankees,Runs,132.0
+1961,Mickey Mantle,New York Yankees,Slugging Average,0.687
+1961,Luis Aparacio,Chicago White Sox,Stolen Bases,53.0
+1961,Roger Maris,New York Yankees,Total Bases,366.0
+1961,Jake Wood,Detroit Tigers,Triples,14.0
+1969,Harmon Killebrew,Minnesota Twins,Base on Balls,145.0
+1969,Rod Carew,Minnesota Twins,Batting Average,0.332
+1969,Tony Oliva,Minnesota Twins,Doubles,39.0
+1969,Tony Oliva,Minnesota Twins,Hits,197.0
+1969,Harmon Killebrew,Minnesota Twins,Home Runs,49.0
+1969,Harmon Killebrew,Minnesota Twins,On Base Percentage,0.43
+1969,Harmon Killebrew,Minnesota Twins,RBI,140.0
+1969,Reggie Jackson,Oakland Athletics,Runs,123.0
+1969,Reggie Jackson,Oakland Athletics,Slugging Average,0.608
+1969,Tommy Harper,Seattle Mariners,Stolen Bases,73.0
+1969,Frank Howard,Washington Senators,Total Bases,340.0
+1969,Del Unser,Washington Senators,Triples,8.0
+1994,Frank Thomas,Chicago White Sox,Base on Balls,109.0
+1994,Paul O'Neill,New York Yankees,Batting Average,0.359
+1994,Chuck Knoblauch,Minnesota Twins,Doubles,45.0
+1994,Kenny Lofton,Cleveland Indians,Hits,160.0
+1994,"Ken Griffey, Jr.",Seattle Mariners,Home Runs,40.0
+1994,Frank Thomas,Chicago White Sox,On Base Percentage,0.494
+1994,Kirby Puckett,Minnesota Twins,RBI,112.0
+1994,Frank Thomas,Chicago White Sox,Runs,106.0
+1994,Frank Thomas,Chicago White Sox,Slugging Average,0.729
+1994,Kenny Lofton,Cleveland Indians,Stolen Bases,60.0
+1994,Albert Belle,Cleveland Indians,Total Bases,294.0
+1994,Lance Johnson,Chicago White Sox,Triples,14.0
+1998,Rickey Henderson,Oakland Athletics,Base on Balls,118.0
+1998,Bernie Williams,New York Yankees,Batting Average,0.339
+1998,Juan Gonzalez,Texas Rangers,Doubles,50.0
+1998,Alex Rodriguez,Seattle Mariners,Hits,213.0
+1998,"Ken Griffey, Jr.",Seattle Mariners,Home Runs,56.0
+1998,Edgar Martinez,Seattle Mariners,On Base Percentage,0.433
+1998,Juan Gonzalez,Texas Rangers,RBI,157.0
+1998,Derek Jeter,New York Yankees,Runs,127.0
+1998,Albert Belle,Chicago White Sox,Slugging Average,0.655
+1998,Rickey Henderson,Oakland Athletics,Stolen Bases,66.0
+1998,Albert Belle,Chicago White Sox,Total Bases,399.0
+1998,Jose Offerman,Kansas City Royals,Triples,13.0
+2001,Jason Giambi,Oakland Athletics,Base on Balls,129.0
+2001,Ichiro Suzuki,Seattle Mariners,Batting Average,0.35
+2001,Jason Giambi,Oakland Athletics,Doubles,47.0
+2001,Ichiro Suzuki,Seattle Mariners,Hits,242.0
+2001,Alex Rodriguez,Texas Rangers,Home Runs,52.0
+2001,Jason Giambi,Oakland Athletics,On Base Percentage,0.477
+2001,Bret Boone,Seattle Mariners,RBI,141.0
+2001,Alex Rodriguez,Texas Rangers,Runs,133.0
+2001,Jason Giambi,Oakland Athletics,Slugging Average,0.66
+2001,Ichiro Suzuki,Seattle Mariners,Stolen Bases,56.0
+2001,Alex Rodriguez,Texas Rangers,Total Bases,393.0
+2001,Cristian Guzman,Minnesota Twins,Triples,14.0
+2016,Mike Trout,Los Angeles Angels,Base on Balls,116.0
+2016,Jose Altuve,Houston Astros,Batting Average,0.338
+2016,David Ortiz,Boston Red Sox,Doubles,48.0
+2016,Jose Altuve,Houston Astros,Hits,216.0
+2016,Mark Trumbo,Baltimore Orioles,Home Runs,47.0
+2016,Mike Trout,Los Angeles Angels,On Base Percentage,0.441
+2016,Edwin Encarnacion,Toronto Blue Jays,RBI,127.0
+2016,Mike Trout,Los Angeles Angels,Runs,123.0
+2016,David Ortiz,Boston Red Sox,Slugging Average,0.62
+2016,Rajai Davis,Cleveland Indians,Stolen Bases,43.0
+2016,Mookie Betts,Boston Red Sox,Total Bases,359.0
+2016,Adam Eaton,Chicago White Sox,Triples,9.0
+2020,DJ LeMahieu,New York Yankees,Batting Average,0.364
+2020,Cesar Hernandez,Cleveland Indians,Doubles,20.0
+2020,Luke Voit,New York Yankees,Home Runs,22.0
+2020,DJ LeMahieu,New York Yankees,On Base Percentage,0.421
+2020,Jose Abreu,Chicago White Sox,RBI,60.0
+2020,Jose Abreu,Chicago White Sox,Slugging Average,0.617
+2020,Adalberto Mondesi,Kansas City Royals,Stolen Bases,24.0
+2020,Kyle Tucker,Houston Astros,Triples,6.0
+2023,J.P. Crawford,Seattle Mariners,Base on Balls,94.0
+2023,Yandy Díaz,Tampa Bay Rays,Batting Average,0.33
+2023,Corey Seager,Texas Rangers,Doubles,42.0
+2023,Marcus Semien,Texas Rangers,Hits,185.0
+2023,Shohei Ohtani,Los Angeles Angels,Home Runs,44.0
+2023,Shohei Ohtani,Los Angeles Angels,On Base Percentage,0.412
+2023,Kyle Tucker,Houston Astros,RBI,112.0
+2023,Marcus Semien,Texas Rangers,Runs,122.0
+2023,Shohei Ohtani,Los Angeles Angels,Slugging Average,0.654
+2023,Esteury Ruiz,Oakland Athletics,Stolen Bases,67.0
+2023,Shohei Ohtani,Los Angeles Angels,Total Bases,325.0
+2023,Bobby Witt Jr.,Kansas City Royals,Triples,11.0

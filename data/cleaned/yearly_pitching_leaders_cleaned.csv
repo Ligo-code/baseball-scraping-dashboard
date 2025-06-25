@@ -1,0 +1,74 @@
+year,player_name,team,stat_category,stat_value
+1927,Ted Lyons,Chicago White Sox,Complete Games,30.0
+1927,Wilcy Moore,New York Yankees,ERA,2.28
+1927,Garland Braxton,Washington Senators,Games,58.0
+1927,Hod Lisenbee,Washington Senators,Shutouts,4.0
+1927,Lefty Grove,Philadelphia Athletics,Strikeouts,174.0
+1927,Waite Hoyt,New York Yankees,Winning Percentage,0.759
+1927,Waite Hoyt,New York Yankees,Wins,22.0
+1947,Hal Newhouser,Detroit Tigers,Complete Games,24.0
+1947,Joe Haynes,Chicago White Sox,ERA,2.42
+1947,Ed Klieman,Cleveland Indians,Games,58.0
+1947,Bob Feller,Cleveland Indians,Shutouts,5.0
+1947,Bob Feller,Cleveland Indians,Strikeouts,196.0
+1947,Allie Reynolds,New York Yankees,Winning Percentage,0.704
+1947,Bob Feller,Cleveland Indians,Wins,20.0
+1961,Frank Lary,Detroit Tigers,Complete Games,22.0
+1961,Dick Donovan,Washington Senators,ERA,2.4
+1961,Luis Arroyo,New York Yankees,Games,65.0
+1961,Luis Arroyo,New York Yankees,Saves,29.0
+1961,Steve Barber,Baltimore Orioles,Shutouts,8.0
+1961,Camilo Pascual,Minnesota Twins,Strikeouts,221.0
+1961,Whitey Ford,New York Yankees,Winning Percentage,0.862
+1961,Whitey Ford,New York Yankees,Wins,25.0
+1969,Mel Stottlemyre,New York Yankees,Complete Games,24.0
+1969,Dick Bosman,Washington Senators,ERA,2.19
+1969,Wilbur Wood,Chicago White Sox,Games,76.0
+1969,Ron Perranoski,Minnesota Twins,Saves,31.0
+1969,Denny McLain,Detroit Tigers,Shutouts,9.0
+1969,Sam McDowell,Cleveland Indians,Strikeouts,279.0
+1969,Jim Palmer,Baltimore Orioles,Winning Percentage,0.8
+1969,Denny McLain,Detroit Tigers,Wins,24.0
+1994,Randy Johnson,Seattle Mariners,Complete Games,9.0
+1994,Steve Ontiveros,Oakland Athletics,ERA,2.65
+1994,Bob Wickman,New York Yankees,Games,53.0
+1994,Lee Smith,Baltimore Orioles,Saves,33.0
+1994,Randy Johnson,Seattle Mariners,Shutouts,4.0
+1994,Randy Johnson,Seattle Mariners,Strikeouts,204.0
+1994,Jason Bere,Chicago White Sox,Winning Percentage,0.857
+1994,Jimmy Key,New York Yankees,Wins,17.0
+1998,Scott Erickson,Baltimore Orioles,Complete Games,11.0
+1998,Roger Clemens,Toronto Blue Jays,ERA,2.65
+1998,Sean Runyan,Detroit Tigers,Games,88.0
+1998,Tom Gordon,Boston Red Sox,Saves,46.0
+1998,David Wells,New York Yankees,Shutouts,5.0
+1998,Roger Clemens,Toronto Blue Jays,Strikeouts,271.0
+1998,David Wells,New York Yankees,Winning Percentage,0.818
+1998,Roger Clemens,Toronto Blue Jays,Wins,20.0
+2001,Steve Sparks,Detroit Tigers,Complete Games,8.0
+2001,Freddy Garcia,Seattle Mariners,ERA,3.05
+2001,Paul Quantrill,Toronto Blue Jays,Games,80.0
+2001,Mariano Rivera,New York Yankees,Saves,50.0
+2001,Mark Mulder,Oakland Athletics,Shutouts,4.0
+2001,Hideo Nomo,Boston Red Sox,Strikeouts,220.0
+2001,Roger Clemens,New York Yankees,Winning Percentage,0.87
+2001,Mark Mulder,Oakland Athletics,Wins,21.0
+2016,Chris Sale,Chicago White Sox,Complete Games,6.0
+2016,Aaron Sanchez,Toronto Blue Jays,ERA,3.0
+2016,Bryan Shaw,Cleveland Indians,Games,75.0
+2016,Zach Britton,Baltimore Orioles,Saves,47.0
+2016,Corey Kluber,Cleveland Indians,Shutouts,2.0
+2016,Justin Verlander,Detroit Tigers,Strikeouts,254.0
+2016,Aaron Sanchez,Toronto Blue Jays,Winning Percentage,0.882
+2016,Rick Porcello,Boston Red Sox,Wins,22.0
+2020,Shane Bieber,Cleveland Indians,ERA,1.63
+2020,Scott Barlow,Kansas City Royals,Games,32.0
+2020,Shane Bieber,Cleveland Indians,Strikeouts,122.0
+2020,Shane Bieber,Cleveland Indians,Winning Percentage,0.889
+2023,Gerrit Cole,New York Yankees,ERA,2.63
+2023,Matt Brash,Seattle Mariners,Games,78.0
+2023,Emmanuel Clase,Cleveland Guardians,Saves,44.0
+2023,Gerrit Cole,New York Yankees,Shutouts,2.0
+2023,Kevin Gausman,Toronto Blue Jays,Strikeouts,237.0
+2023,Gerrit Cole,New York Yankees,Winning Percentage,0.789
+2023,Chris Bassitt,Toronto Blue Jays,Wins,16.0
